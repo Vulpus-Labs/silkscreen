@@ -1,0 +1,36 @@
+[package]
+name = "gain-plugin"
+description = "The gain example as a CLAP plugin"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+gain.workspace = true
+silkscreen.workspace = true
+silkscreen-clap.workspace = true
+
+[build-dependencies]
+silkscreen-build.workspace = true
+
+[dev-dependencies]
+silkscreen-bridge = { workspace = true, features = ["testing"] }
+silkscreen-clap = { workspace = true, features = ["test-host"] }
+clack-host = { workspace = true, features = ["clack-plugin"] }
+clack-plugin.workspace = true
+clack-extensions = { workspace = true, features = ["audio-ports", "params", "state", "gui", "clack-plugin", "clack-host"] }
+
+# How `cargo silkscreen bundle` wraps it (silkscreen-tool). `id` and `name`
+# match the plugin's `SilkscreenPlugin::ID` and `NAME`.
+[package.metadata.silkscreen.clap]
+bundle = "SilkscreenGain"
+id = "com.example.silkscreen.gain"
+name = "silkscreen Gain"
+
+[lints]
+workspace = true

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="120">
+  <!-- A canvas control (design/faceplates.md): an attack/decay curve the plugin
+       paints from two params, between their knobs. -->
+  <rect width="300" height="120" fill="#1c1d20"/>
+  <rect x="70" y="10" width="160" height="100" rx="4" fill="#0a0a0b" stroke="#45474d"/>
+  <g id="controls">
+    <rect id="knob.attack" x="15" y="40" width="40" height="40" fill="#f0f"/>
+    <rect id="canvas.curve" x="75" y="15" width="150" height="90" fill="#f0f"/>
+    <rect id="knob.decay" x="245" y="40" width="40" height="40" fill="#f0f"/>
+  </g>
+</svg>

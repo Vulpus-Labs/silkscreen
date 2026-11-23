@@ -1,0 +1,16 @@
+[package]
+name = "gain-preview"
+description = "Opens the gain example's editor in a native window, with no audio"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+gain.workspace = true
+silkscreen.workspace = true
+silkscreen-host-native.workspace = true
+
+[lints]
+workspace = true

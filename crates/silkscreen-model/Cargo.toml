@@ -1,0 +1,18 @@
+[package]
+name = "silkscreen-model"
+description = "Model, controller and event history for silkscreen editors"
+# The library's own version line, apart from the synths'.
+version = "0.2.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+# Packageable; crates.io waits on clack's release, so nothing is
+# published yet.
+publish = true
+
+[dependencies]
+silkscreen-core.workspace = true
+silkscreen-bridge.workspace = true
+
+[lints]
+workspace = true

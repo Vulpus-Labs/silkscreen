@@ -1,0 +1,25 @@
+[package]
+name = "gain"
+description = "silkscreen example: one SVG faceplate, one gain knob"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[features]
+# Name the faceplate PNGs by URL instead of embedding them, for the web host
+# to fetch (design/hosts.md). gain-web turns it on for wasm32 only.
+fetch = []
+
+[dependencies]
+silkscreen.workspace = true
+
+[build-dependencies]
+silkscreen-build.workspace = true
+
+[dev-dependencies]
+silkscreen-harness.workspace = true
+
+[lints]
+workspace = true

@@ -1,0 +1,30 @@
+[package]
+name = "tone-web"
+description = "The tone example on a web page, played from an on-screen keyboard"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+tone.workspace = true
+silkscreen-host-web.workspace = true
+wasm-bindgen.workspace = true
+js-sys.workspace = true
+web-sys = { workspace = true, features = ["HtmlCanvasElement"] }
+
+# Fetch mode on the web only (see gain-web).
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+tone = { workspace = true, features = ["fetch"] }
+
+# How `cargo silkscreen web` builds its page (silkscreen-tool).
+[package.metadata.silkscreen.web]
+engine = "tone-web-engine"
+page = "web"
+
+[lints]
+workspace = true

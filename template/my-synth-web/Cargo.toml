@@ -1,0 +1,23 @@
+[package]
+name = "my-synth-web"
+description = "My Synth's editor on a web page; its engine runs in an AudioWorklet"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+my-synth.workspace = true
+silkscreen-host-web.workspace = true
+
+# On the web the faceplate's PNGs are fetched, not embedded.
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+my-synth = { workspace = true, features = ["fetch"] }
+
+# How `cargo silkscreen web` builds the page.
+[package.metadata.silkscreen.web]
+engine = "my-synth-web-engine"
+page = "web"

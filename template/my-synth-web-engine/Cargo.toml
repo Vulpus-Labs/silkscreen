@@ -1,0 +1,14 @@
+[package]
+name = "my-synth-web-engine"
+description = "My Synth's engine as a raw wasm module, for an AudioWorklet"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+my-synth.workspace = true
+silkscreen.workspace = true

@@ -1,0 +1,7 @@
+# Pinned so PNG snapshot tests are reproducible: float rasterisation can
+# shift between compiler versions. Bump it deliberately, and re-bless the
+# snapshots in the same commit. silkscreen needs 1.95 or later.
+[toolchain]
+channel = "1.95.0"
+components = ["clippy", "rustfmt"]
+targets = ["wasm32-unknown-unknown"]

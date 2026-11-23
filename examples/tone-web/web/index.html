@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>silkscreen: tone</title>
+  <style>
+    body { margin: 0; min-height: 100vh; display: grid; place-content: center; gap: 16px;
+           background: #202024; color: #c8c8cc; font: 14px system-ui, sans-serif; }
+    canvas { display: block; margin: 0 auto; }
+    #keyboard { width: 520px; height: 110px; }
+    .controls { display: flex; gap: 8px; justify-content: center; }
+    button { font: inherit; padding: 6px 12px; }
+    #status { text-align: center; min-height: 1.4em; }
+  </style>
+</head>
+<body>
+  <canvas id="faceplate"></canvas>
+  <div id="keyboard"></div>
+  <div class="controls"><button id="start">Start audio</button></div>
+  <div id="status"></div>
+  <script type="module">
+    import init, { start } from "./pkg/tone_web.js";
+    import { startAudio } from "./silkscreen-audio.mjs";
+    import { mountKeyboard } from "./silkscreen-keyboard.mjs";
+
+    const status = document.getElementById("status");
+    await init();
+    const page = start(document.getElementById("faceplate"));
+    // For poking from the console: page.midi(0x90, 60, 100), audio.ctx.
+    window.page = page;
+    if (!page.sab) {
+      status.textContent = "Not cross-origin isolated: editor only. Serve with cargo silkscreen web tone-web --serve.";
+    }
+    window.keyboard = mountKeyboard(document.getElementById("keyboard"), {
+      onMidi: ([status, d1, d2]) => page.midi(status, d1, d2),
+      low: 48,
+      octaves: 2,
+    });
+
+    document.getElementById("start").addEventListener("click", async () => {
+      if (window.audio || !page.sab) return;
+      status.textContent = "Starting audio…";
+      try {
+        window.audio = await startAudio({
+          sab: page.sab,
+          engineUrl: "./tone_web_engine.wasm",
+          workletUrl: "./silkscreen-worklet.js",
+          source: "none",
+        });
+        status.textContent = "Audio running. Play the keyboard.";
+      } catch (e) {
+        status.textContent = String(e.message || e);
+        console.error(e);
+      }
+    });
+  </script>
+</body>
+</html>

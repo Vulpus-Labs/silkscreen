@@ -1,0 +1,7 @@
+# silkscreen preset
+format = 1
+name = Bright Saw
+category = Basic
+p1 = 1  # Level
+p2 = 0.85  # Cutoff
+p3 = 0  # Wave: Saw

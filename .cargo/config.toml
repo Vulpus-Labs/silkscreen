@@ -1,0 +1,12 @@
+[alias]
+# silkscreen-tool from this checkout, without installing it:
+# `cargo silkscreen web gain-web --serve`.
+silkscreen = "run --quiet --package silkscreen-tool --bin cargo-silkscreen --"
+
+# `cargo test --target wasm32-unknown-unknown` runs wasm-bindgen tests (in
+# node) with the CLI pinned in the workspace Cargo.toml.
+[target.wasm32-unknown-unknown]
+runner = "wasm-bindgen-test-runner"
+# wasm SIMD: every current browser has it, and engine DSP runs markedly
+# faster with it.
+rustflags = ["-C", "target-feature=+simd128"]

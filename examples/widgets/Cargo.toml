@@ -1,0 +1,22 @@
+[package]
+name = "widgets"
+description = "silkscreen example: one faceplate with every control kind"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+silkscreen.workspace = true
+
+[build-dependencies]
+silkscreen-build.workspace = true
+
+[dev-dependencies]
+silkscreen-bridge = { workspace = true, features = ["testing"] }
+silkscreen-harness.workspace = true
+silkscreen-host-native.workspace = true
+
+[lints]
+workspace = true

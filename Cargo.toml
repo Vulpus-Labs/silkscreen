@@ -1,0 +1,129 @@
+# The silkscreen workspace: the library's crates and its examples.
+[workspace]
+resolver = "3"
+members = [
+    "crates/silkscreen-core",
+    "crates/silkscreen-text",
+    "crates/silkscreen-model",
+    "crates/silkscreen-build",
+    "crates/silkscreen-bridge",
+    "crates/silkscreen",
+    "crates/silkscreen-harness",
+    "crates/silkscreen-host-native",
+    "crates/silkscreen-clap",
+    "crates/silkscreen-host-web",
+    "crates/silkscreen-cpal",
+    "crates/silkscreen-tool",
+    "examples/gain",
+    "examples/widgets",
+    "examples/gain-preview",
+    "examples/gain-standalone",
+    "examples/gain-web",
+    "examples/gain-web-engine",
+    "examples/gain-plugin",
+    "examples/tone",
+    "examples/tone-plugin",
+    "examples/tone-web",
+    "examples/tone-web-engine",
+]
+# The getting-started template is a workspace of its own (template/README.md).
+exclude = ["template"]
+
+[workspace.package]
+version = "0.2.0"
+edition = "2024"
+rust-version = "1.95"
+license = "MIT OR Apache-2.0"
+publish = false
+
+[workspace.dependencies]
+# The library's crates carry a version as well as a path, as packaging
+# needs: keep it equal to the crates' own (0.2.0).
+silkscreen-core = { path = "crates/silkscreen-core", version = "0.2.0" }
+silkscreen-text = { path = "crates/silkscreen-text", version = "0.2.0" }
+silkscreen-model = { path = "crates/silkscreen-model", version = "0.2.0" }
+silkscreen-build = { path = "crates/silkscreen-build", version = "0.2.0" }
+silkscreen-bridge = { path = "crates/silkscreen-bridge", version = "0.2.0" }
+silkscreen = { path = "crates/silkscreen", version = "0.2.0" }
+silkscreen-harness = { path = "crates/silkscreen-harness", version = "0.2.0" }
+silkscreen-host-native = { path = "crates/silkscreen-host-native", version = "0.2.0" }
+silkscreen-clap = { path = "crates/silkscreen-clap", version = "0.2.0" }
+silkscreen-host-web = { path = "crates/silkscreen-host-web", version = "0.2.0" }
+silkscreen-cpal = { path = "crates/silkscreen-cpal", version = "0.2.0" }
+silkscreen-tool = { path = "crates/silkscreen-tool", version = "0.2.0" }
+gain = { path = "examples/gain" }
+tone = { path = "examples/tone" }
+
+# resvg re-exports tiny-skia; keep these in lockstep so the tree holds exactly one.
+fontdue = { version = "0.9.4", default-features = false, features = ["hashbrown"] }
+tiny-skia = { version = "0.12", default-features = false, features = ["std", "simd", "png-format"] }
+resvg = { version = "0.48", default-features = false, features = ["text", "raster-images"] }
+usvg = { version = "0.48", default-features = false, features = ["text"] }
+roxmltree = "0.21"
+rtrb = "0.4"
+# Standalone audio I/O, as Patches' patches-cpal uses it.
+cpal = "0.15"
+baseview = "0.4.2"
+softbuffer = "0.4"
+# macOS presentation (design/rendering.md): the same objc2 crates softbuffer uses.
+objc2 = "0.6"
+objc2-core-foundation = { version = "0.3.2", default-features = false, features = ["std", "CFCGTypes"] }
+objc2-core-graphics = { version = "0.3.2", default-features = false, features = ["std", "objc2", "CGColorSpace", "CGDataProvider", "CGImage"] }
+objc2-quartz-core = { version = "0.3.2", default-features = false, features = ["std", "objc2-core-foundation", "CALayer", "CATransaction"] }
+# The standalone app's menu bar; baseview already uses these.
+objc2-foundation = { version = "0.3.2", default-features = false, features = ["std", "NSString", "NSGeometry"] }
+# NSAlert, NSTextField and block2: name prompts in plugins.
+# NSPasteboard: reading the clipboard.
+objc2-app-kit = { version = "0.3.2", default-features = false, features = ["std", "block2", "NSAlert", "NSApplication", "NSControl", "NSEvent", "NSGraphics", "NSMenu", "NSMenuItem", "NSPasteboard", "NSResponder", "NSTextField", "NSView", "NSWindow"] }
+block2 = "0.6"
+# The Windows name prompt and clipboard; the version
+# baseview and rfd use.
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Graphics_Gdi", "Win32_System_DataExchange", "Win32_System_LibraryLoader", "Win32_System_Memory", "Win32_System_Ole", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_WindowsAndMessaging"] }
+raw-window-handle = "0.6"
+# Native Save and Open panels for preset export and import (design/presets.md).
+# xdg-portal only on Linux: baseview is X11, so no Wayland parenting.
+rfd = { version = "0.17", default-features = false, features = ["xdg-portal"] }
+# clack: pinned to a known-good main commit (no compatible crates.io
+# release of this API yet).
+clack-plugin = { git = "https://github.com/prokopyl/clack", rev = "f874e858ad576c601367b3038af5088a4e671744" }
+clack-extensions = { git = "https://github.com/prokopyl/clack", rev = "f874e858ad576c601367b3038af5088a4e671744" }
+clack-host = { git = "https://github.com/prokopyl/clack", rev = "f874e858ad576c601367b3038af5088a4e671744" }
+# Web host (design/hosts.md). wasm-bindgen is pinned exactly: the
+# `wasm-bindgen` CLI that post-processes the module must be the same version
+# (`cargo install wasm-bindgen-cli --version 0.2.129`).
+wasm-bindgen = "=0.2.129"
+js-sys = "0.3.106"
+web-sys = "0.3.106"
+wasm-bindgen-test = "0.3"
+wasm-bindgen-futures = "0.4"
+# Must match the version baseview uses for its keyboard events.
+keyboard-types = "0.8"
+
+[workspace.lints.rust]
+unsafe_code = "deny"
+missing_debug_implementations = "warn"
+
+[workspace.lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+# Pixel and geometry code casts between f32, i32 and u32 constantly; the
+# conversions are deliberate and range-checked where it matters.
+cast_possible_truncation = "allow"
+cast_sign_loss = "allow"
+cast_precision_loss = "allow"
+cast_possible_wrap = "allow"
+module_name_repetitions = "allow"
+must_use_candidate = "allow"
+return_self_not_must_use = "allow"
+# Exact float equality is usually intended here (clamped values, bit-exact
+# round trips, test expectations); use to_bits() where identity matters.
+float_cmp = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+
+# Build scripts render and encode faceplates (silkscreen-build): unoptimised
+# that takes many times longer.
+[profile.dev.build-override]
+opt-level = 3
+
+[profile.release.build-override]
+opt-level = 3

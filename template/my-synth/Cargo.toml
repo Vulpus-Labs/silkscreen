@@ -1,0 +1,21 @@
+[package]
+name = "my-synth"
+description = "My Synth's params, editor and engine, shared by every host"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[features]
+# Name the faceplate's PNGs by URL instead of embedding them, for the web
+# page to fetch. my-synth-web turns it on for wasm32 only.
+fetch = []
+
+[dependencies]
+silkscreen.workspace = true
+
+[build-dependencies]
+silkscreen-build.workspace = true
+
+[dev-dependencies]
+silkscreen-harness.workspace = true

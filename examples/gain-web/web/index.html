@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>silkscreen: gain</title>
+  <style>
+    body { margin: 0; min-height: 100vh; display: grid; place-content: center; gap: 16px;
+           background: #202024; color: #c8c8cc; font: 14px system-ui, sans-serif; }
+    canvas { display: block; }
+    .controls { display: flex; gap: 8px; justify-content: center; }
+    button { font: inherit; padding: 6px 12px; }
+    #status { text-align: center; min-height: 1.4em; }
+  </style>
+</head>
+<body>
+  <canvas id="faceplate"></canvas>
+  <div class="controls">
+    <button id="tone">Start audio: test tone</button>
+    <button id="mic">Start audio: microphone</button>
+  </div>
+  <div id="status"></div>
+  <script type="module">
+    import init, { start } from "./pkg/gain_web.js";
+    import { startAudio } from "./silkscreen-audio.mjs";
+
+    const status = document.getElementById("status");
+    await init();
+    const page = start(document.getElementById("faceplate"));
+    // For poking from the console: page.puts(), audio.setHostParam(0, -12).
+    window.page = page;
+    if (!page.sab) {
+      status.textContent = "Not cross-origin isolated: editor only. Serve with cargo silkscreen web gain-web --serve.";
+    }
+
+    for (const [id, source] of [["tone", "oscillator"], ["mic", "microphone"]]) {
+      document.getElementById(id).addEventListener("click", async () => {
+        if (window.audio || !page.sab) return;
+        status.textContent = "Starting audio…";
+        try {
+          window.audio = await startAudio({
+            sab: page.sab,
+            engineUrl: "./gain_web_engine.wasm",
+            workletUrl: "./silkscreen-worklet.js",
+            source,
+          });
+          status.textContent = `Audio running (${source}). Drag the knob.`;
+        } catch (e) {
+          status.textContent = String(e.message || e);
+          console.error(e);
+        }
+      });
+    }
+  </script>
+</body>
+</html>

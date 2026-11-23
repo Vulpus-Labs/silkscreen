@@ -1,0 +1,17 @@
+[package]
+name = "gain-standalone"
+description = "The gain example as a desktop app: its editor in a window, its engine on the audio device"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+gain.workspace = true
+silkscreen.workspace = true
+silkscreen-host-native.workspace = true
+silkscreen-cpal.workspace = true
+
+[lints]
+workspace = true

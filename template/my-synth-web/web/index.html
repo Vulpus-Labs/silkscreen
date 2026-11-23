@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>My Synth</title>
+</head>
+<body>
+  <script type="module">
+    // silkscreen-page.mjs builds the whole page: the faceplate, an
+    // on-screen keyboard, MIDI input and the gesture that starts audio.
+    import * as wasm from "./pkg/my_synth_web.js";
+    import { mountSynthPage } from "./silkscreen-page.mjs";
+
+    mountSynthPage({
+      wasm,
+      name: "My Synth",
+      blurb: "a one-voice synth",
+      engine: "./my_synth_web_engine.wasm",
+      example: "my-synth-web",
+      vendor: { name: "My Company" },
+    });
+  </script>
+</body>
+</html>

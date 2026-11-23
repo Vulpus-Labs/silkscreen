@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="220">
+  <!-- One of every control kind. Plain wells mark each control's
+       place; the widgets draw on top. No text, so no fonts are needed. -->
+  <rect width="400" height="220" fill="#1c1d20"/>
+  <rect x="4" y="4" width="392" height="212" rx="6" fill="#2b2d31" stroke="#45474d"/>
+  <g fill="#232427" stroke="#3a3c41">
+    <rect x="20" y="40" width="60" height="60" rx="30"/>
+    <rect x="25" y="130" width="50" height="50" rx="25"/>
+    <rect x="100" y="30" width="24" height="160" rx="4"/>
+    <rect x="144" y="30" width="24" height="160" rx="4"/>
+    <rect x="190" y="40" width="40" height="40" rx="4"/>
+    <rect x="255" y="45" width="30" height="30" rx="4"/>
+    <rect x="258" y="96" width="24" height="110" rx="4"/>
+    <rect x="310" y="40" width="70" height="140" rx="4"/>
+    <!-- The preset bar's Save, Save As and Init (design/presets.md). -->
+    <rect x="176" y="164" width="22" height="16" rx="3"/>
+    <rect x="201" y="164" width="22" height="16" rx="3"/>
+    <rect x="226" y="164" width="22" height="16" rx="3"/>
+  </g>
+
+  <g id="controls">
+    <rect id="knob.level" x="20" y="40" width="60" height="60" fill="#f0f"/>
+    <rect id="knob.fine" x="25" y="130" width="50" height="50" fill="#f0f"/>
+    <rect id="fader.cutoff" x="100" y="30" width="24" height="160" fill="#f0f"/>
+    <rect id="selector.wave" x="144" y="30" width="24" height="160" fill="#f0f"/>
+    <rect id="toggle.stop" x="190" y="40" width="40" height="40" fill="#f0f"/>
+    <rect id="button.sync" x="255" y="45" width="30" height="30" fill="#f0f"/>
+    <rect id="selector.select" x="258" y="96" width="24" height="110" fill="#f0f"/>
+    <rect id="radio.tuning.0" x="330" y="50" width="30" height="30" fill="#f0f"/>
+    <rect id="radio.tuning.1" x="330" y="95" width="30" height="30" fill="#f0f"/>
+    <rect id="radio.tuning.2" x="330" y="140" width="30" height="30" fill="#f0f"/>
+    <rect id="dropdown.mode" x="176" y="112" width="72" height="18" fill="#f0f"/>
+    <rect id="preset.program" x="176" y="140" width="72" height="18" fill="#f0f"/>
+    <rect id="action.save" x="176" y="164" width="22" height="16" fill="#f0f"/>
+    <rect id="action.saveas" x="201" y="164" width="22" height="16" fill="#f0f"/>
+    <rect id="action.init" x="226" y="164" width="22" height="16" fill="#f0f"/>
+  </g>
+</svg>

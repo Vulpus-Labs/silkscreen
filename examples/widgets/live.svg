@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="120">
+  <!-- The live displays (design/engine-bridge.md): a scope over a hairline and
+       a stereo meter. -->
+  <rect width="300" height="120" fill="#1c1d20"/>
+  <rect x="4" y="4" width="292" height="112" rx="6" fill="#0a0a0b" stroke="#45474d"/>
+  <line x1="20" y1="60" x2="240" y2="60" stroke="#dcdcdc" stroke-width="0.6" stroke-opacity="0.75"/>
+  <g id="controls">
+    <rect id="scope.wave" x="20" y="35" width="220" height="50" fill="#f0f"/>
+    <rect id="meter.level" x="260" y="20" width="18" height="80" fill="#f0f"/>
+  </g>
+</svg>

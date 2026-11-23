@@ -1,0 +1,41 @@
+[package]
+name = "tone-plugin"
+description = "A mono sine instrument: note input, with the gain example's faceplate"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+gain.workspace = true
+silkscreen.workspace = true
+silkscreen-clap.workspace = true
+tone.workspace = true
+
+[build-dependencies]
+silkscreen-build.workspace = true
+
+[dev-dependencies]
+silkscreen-bridge = { workspace = true, features = ["testing"] }
+silkscreen-clap = { workspace = true, features = ["test-host"] }
+baseview.workspace = true
+raw-window-handle.workspace = true
+clack-host = { workspace = true, features = ["clack-plugin"] }
+clack-extensions = { workspace = true, features = ["audio-ports", "note-ports", "params", "gui", "raw-window-handle_06", "clack-plugin", "clack-host"] }
+
+[target.'cfg(target_os = "macos")'.dev-dependencies]
+objc2.workspace = true
+
+# How `cargo silkscreen bundle` wraps it (silkscreen-tool). `id` and `name`
+# match the plugin's `SilkscreenPlugin::ID` and `NAME`.
+[package.metadata.silkscreen.clap]
+bundle = "SilkscreenTone"
+id = "com.example.silkscreen.tone"
+name = "silkscreen Tone"
+
+[lints]
+workspace = true

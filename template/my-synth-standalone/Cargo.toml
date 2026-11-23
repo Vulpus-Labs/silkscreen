@@ -1,0 +1,13 @@
+[package]
+name = "my-synth-standalone"
+description = "My Synth as a desktop app, on the default audio device"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+my-synth.workspace = true
+silkscreen.workspace = true
+silkscreen-cpal.workspace = true
+silkscreen-host-native.workspace = true

@@ -1,0 +1,18 @@
+[package]
+name = "gain-web-engine"
+description = "The gain example's engine as a C-ABI wasm module for an AudioWorklet"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+gain.workspace = true
+silkscreen-bridge.workspace = true
+
+[lints]
+workspace = true

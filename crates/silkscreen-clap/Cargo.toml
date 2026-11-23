@@ -1,0 +1,26 @@
+[package]
+name = "silkscreen-clap"
+description = "CLAP plugin shell for silkscreen editors and engines, built on clack"
+# The library's own version line, apart from the synths'.
+version = "0.2.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+# Packageable; crates.io waits on clack's release, so nothing is
+# published yet.
+publish = true
+
+[dependencies]
+silkscreen.workspace = true
+clack-plugin.workspace = true
+clack-extensions = { workspace = true, features = ["audio-ports", "params", "gui", "state", "note-ports", "timer", "latency", "raw-window-handle_06", "clack-plugin"] }
+silkscreen-host-native.workspace = true
+raw-window-handle.workspace = true
+clack-host = { workspace = true, features = ["clack-plugin"], optional = true }
+
+[features]
+# A minimal clack host for plugins' tests: `test_host`.
+test-host = ["dep:clack-host"]
+
+[lints]
+workspace = true

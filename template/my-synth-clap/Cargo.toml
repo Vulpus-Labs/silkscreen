@@ -1,0 +1,22 @@
+[package]
+name = "my-synth-clap"
+description = "My Synth as a CLAP plugin"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+my-synth.workspace = true
+silkscreen.workspace = true
+silkscreen-clap.workspace = true
+
+# How `cargo silkscreen bundle` wraps it. `id` and `name` must match the
+# plugin's `ID` and `NAME` in src/lib.rs.
+[package.metadata.silkscreen.clap]
+bundle = "MySynth"
+id = "com.example.my-synth"
+name = "My Synth"

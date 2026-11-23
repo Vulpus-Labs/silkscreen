@@ -1,0 +1,37 @@
+# A silkscreen plugin: one synth as a CLAP plugin, a web page and a desktop
+# app. See README.md for copying it out and renaming it.
+[workspace]
+resolver = "3"
+members = [
+    "my-synth",
+    "my-synth-clap",
+    "my-synth-web",
+    "my-synth-web-engine",
+    "my-synth-standalone",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.95"
+publish = false
+
+[workspace.dependencies]
+my-synth = { path = "my-synth" }
+# Here the template builds against the crates beside it. Copied out, give
+# each of these `git = "https://github.com/Vulpus-Labs/silkscreen", tag = "…"`
+# in place of `path`.
+silkscreen = { path = "../crates/silkscreen" }
+silkscreen-build = { path = "../crates/silkscreen-build" }
+silkscreen-clap = { path = "../crates/silkscreen-clap" }
+silkscreen-cpal = { path = "../crates/silkscreen-cpal" }
+silkscreen-harness = { path = "../crates/silkscreen-harness" }
+silkscreen-host-native = { path = "../crates/silkscreen-host-native" }
+silkscreen-host-web = { path = "../crates/silkscreen-host-web" }
+
+# Faceplates are rendered by build scripts: unoptimised, that is slow.
+[profile.dev.build-override]
+opt-level = 3
+
+[profile.release.build-override]
+opt-level = 3
