@@ -60,4 +60,16 @@ than shipping a CLAP inside the VST3 bundle.
   insists on an Xcode version, so the tool passes one.
 - CI's new `vst3` job bundles and validates `gain-plugin` on macOS,
   Ubuntu and Windows.
-- To do: the validator on Windows and Linux (CI), and a VST3-only host.
+- CI run 45430956163: `gain-plugin` bundled and validated (47 of 47) on
+  macOS, Ubuntu and Windows. Three fixes got there:
+  - position-independent code, so the static libraries link into the
+    Linux module;
+  - the MSVC DLL runtime, because clap-wrapper otherwise picks the
+    static one and the two can't mix;
+  - GTK 3 and gtkmm 3 on Linux, which the SDK's editor host needs when
+    it is configured with the validator.
+
+  A cache-restored partial clap-wrapper checkout is now replaced, not
+  renamed over. Released in 0.2.2.
+- To do: load, play, automate and save in a VST3-only host (a hand
+  check).

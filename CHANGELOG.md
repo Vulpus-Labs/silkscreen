@@ -11,6 +11,8 @@ the latest tag, so a breaking change fails until the version is raised.
 
 ## Unreleased
 
+## 0.2.2 (2026-11-24)
+
 ### Added
 
 - `cargo silkscreen bundle <package> --vst3` builds a VST3 beside the
