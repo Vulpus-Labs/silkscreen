@@ -12,6 +12,7 @@ the SVG, and a plugin's editor is mostly generated code plus the bindings
 from its controls to its parameters.
 
 **Status:** pre-1.0. The API changes between minor versions; pin a tag.
+Changes are listed in [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Start here
 

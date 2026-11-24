@@ -30,7 +30,7 @@ members = [
 exclude = ["template"]
 
 [workspace.package]
-version = "0.2.0"
+version = "0.2.1"
 edition = "2024"
 rust-version = "1.95"
 license = "MIT OR Apache-2.0"
@@ -38,19 +38,19 @@ publish = false
 
 [workspace.dependencies]
 # The library's crates carry a version as well as a path, as packaging
-# needs: keep it equal to the crates' own (0.2.0).
-silkscreen-core = { path = "crates/silkscreen-core", version = "0.2.0" }
-silkscreen-text = { path = "crates/silkscreen-text", version = "0.2.0" }
-silkscreen-model = { path = "crates/silkscreen-model", version = "0.2.0" }
-silkscreen-build = { path = "crates/silkscreen-build", version = "0.2.0" }
-silkscreen-bridge = { path = "crates/silkscreen-bridge", version = "0.2.0" }
-silkscreen = { path = "crates/silkscreen", version = "0.2.0" }
-silkscreen-harness = { path = "crates/silkscreen-harness", version = "0.2.0" }
-silkscreen-host-native = { path = "crates/silkscreen-host-native", version = "0.2.0" }
-silkscreen-clap = { path = "crates/silkscreen-clap", version = "0.2.0" }
-silkscreen-host-web = { path = "crates/silkscreen-host-web", version = "0.2.0" }
-silkscreen-cpal = { path = "crates/silkscreen-cpal", version = "0.2.0" }
-silkscreen-tool = { path = "crates/silkscreen-tool", version = "0.2.0" }
+# needs: keep it equal to the crates' own (0.2.1).
+silkscreen-core = { path = "crates/silkscreen-core", version = "0.2.1" }
+silkscreen-text = { path = "crates/silkscreen-text", version = "0.2.1" }
+silkscreen-model = { path = "crates/silkscreen-model", version = "0.2.1" }
+silkscreen-build = { path = "crates/silkscreen-build", version = "0.2.1" }
+silkscreen-bridge = { path = "crates/silkscreen-bridge", version = "0.2.1" }
+silkscreen = { path = "crates/silkscreen", version = "0.2.1" }
+silkscreen-harness = { path = "crates/silkscreen-harness", version = "0.2.1" }
+silkscreen-host-native = { path = "crates/silkscreen-host-native", version = "0.2.1" }
+silkscreen-clap = { path = "crates/silkscreen-clap", version = "0.2.1" }
+silkscreen-host-web = { path = "crates/silkscreen-host-web", version = "0.2.1" }
+silkscreen-cpal = { path = "crates/silkscreen-cpal", version = "0.2.1" }
+silkscreen-tool = { path = "crates/silkscreen-tool", version = "0.2.1" }
 gain = { path = "examples/gain" }
 tone = { path = "examples/tone" }
 

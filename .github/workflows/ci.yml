@@ -53,6 +53,24 @@ jobs:
           cargo test
           cargo clippy --all-targets -- -D warnings
 
+  semver:
+    name: Semver checks
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The baseline is the latest release tag, so fetch tags.
+          fetch-depth: 0
+      - run: rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-semver-checks
+      # A breaking change against the latest tag fails until the version
+      # is raised (CHANGELOG.md). Examples are publish = false: skipped.
+      - name: Semver checks
+        run: cargo semver-checks --workspace --baseline-rev "$(git describe --tags --abbrev=0)"
+
   others:
     name: Clippy and tests (${{ matrix.os }})
     runs-on: ${{ matrix.os }}

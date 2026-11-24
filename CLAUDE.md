@@ -6,6 +6,13 @@
   change that alters how something works updates its document in the same
   change. Code comments cite the document (`design/presets.md`).
 - Keep commits to one change each, with a subject that says what it does.
+- Record user-visible changes under `## Unreleased` in `CHANGELOG.md`. A
+  breaking change raises the version (0.x: the minor) in the same change;
+  CI's semver check against the latest tag enforces it.
+- A release: move Unreleased under the new version and date, set
+  the version in each crate's manifest, `[workspace.package]` and
+  `[workspace.dependencies]`, tag `vX.Y.Z` and push the tag with the
+  commit.
 
 ## Code
 
@@ -30,6 +37,7 @@ cargo check -p silkscreen-bridge --no-default-features   # no_std engines
 RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps
 cargo package -p silkscreen-core -p silkscreen-text -p silkscreen-model -p silkscreen-build -p silkscreen-bridge -p silkscreen -p silkscreen-harness -p silkscreen-host-native -p silkscreen-host-web -p silkscreen-cpal -p silkscreen-tool
 (cd template && cargo fmt --all --check && cargo test && cargo clippy --all-targets -- -D warnings)
+cargo semver-checks --workspace --baseline-rev "$(git describe --tags --abbrev=0)"
 ```
 
 Visual changes are checked by PNG snapshots. Re-bless with

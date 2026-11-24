@@ -2,7 +2,7 @@
 name = "silkscreen-clap"
 description = "CLAP plugin shell for silkscreen editors and engines, built on clack"
 # The library's own version line, apart from the synths'.
-version = "0.2.0"
+version = "0.2.1"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -20,7 +20,7 @@ clack-host = { workspace = true, features = ["clack-plugin"], optional = true }
 
 [features]
 # A minimal clack host for plugins' tests: `test_host`.
-test-host = ["dep:clack-host"]
+test-host = ["dep:clack-host", "clack-extensions/clack-host"]
 
 [lints]
 workspace = true
