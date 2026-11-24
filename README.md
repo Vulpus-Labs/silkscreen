@@ -63,6 +63,15 @@ the SIL Open Font License 1.1
 VT323, used by the web host, likewise
 ([`crates/silkscreen-host-web/js/fonts`](crates/silkscreen-host-web/js/fonts)).
 
+A VST3 built with `cargo silkscreen bundle --vst3` also contains code
+the tool fetches at build time: free-audio's
+[clap-wrapper](https://github.com/free-audio/clap-wrapper) (MIT), the
+[VST3 SDK](https://github.com/steinbergmedia/vst3sdk) 3.8.0 (MIT, from
+Steinberg Media Technologies) and the
+[CLAP headers](https://github.com/free-audio/clap) (MIT). A plugin that
+ships one should carry their notices. VST is a registered trademark of
+Steinberg Media Technologies GmbH.
+
 Unless you explicitly state otherwise, any contribution intentionally
 submitted for inclusion in the work by you, as defined in the Apache-2.0
 licence, shall be dual licensed as above, without any additional terms

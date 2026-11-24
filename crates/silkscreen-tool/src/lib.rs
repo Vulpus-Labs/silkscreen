@@ -1,7 +1,7 @@
 //! Builds silkscreen plugins from any workspace.
 //!
 //! ```text
-//! cargo silkscreen bundle <package> [--debug] [--universal | --target <triple>] [--sign] [--notarize] [--install]
+//! cargo silkscreen bundle <package> [--debug] [--universal | --target <triple>] [--vst3 [--validate]] [--sign] [--notarize] [--install]
 //! cargo silkscreen web <package> [--debug] [--serve] [--port <n>]
 //! cargo silkscreen deploy-web <package> [--site <checkout>]
 //! ```
@@ -25,7 +25,8 @@
 //!
 //! [`bundle`] builds a `.clap` into `<target>/bundled/`: a bundle
 //! directory on macOS (`--universal` joins ARM64 and x86-64 with `lipo`;
-//! [`sign`] signs and notarizes it), the shared library elsewhere.
+//! [`sign`] signs and notarizes it), the shared library elsewhere; with
+//! `--vst3`, [`vst3`] builds a `.vst3` beside it through clap-wrapper.
 //! [`web`] builds the two wasm modules, the host's JS and the page into
 //! `<target>/web/<package>/`, and serves them with the cross-origin
 //! isolation a `SharedArrayBuffer` needs. [`deploy`] publishes a page into
@@ -36,13 +37,14 @@ pub mod deploy;
 mod files;
 pub mod metadata;
 pub mod sign;
+pub mod vst3;
 pub mod web;
 
 pub use metadata::{Clap, Package, Site, Web, Workspace};
 
 /// The commands and their flags.
 pub fn usage() -> String {
-    "usage: cargo silkscreen bundle <package> [--debug] [--universal | --target <triple>] [--sign] [--notarize] [--install]\n       \
+    "usage: cargo silkscreen bundle <package> [--debug] [--universal | --target <triple>] [--vst3 [--validate]] [--sign] [--notarize] [--install]\n       \
      cargo silkscreen web <package> [--debug] [--serve] [--port <n>]\n       \
      cargo silkscreen deploy-web <package> [--site <checkout>]   (env: SITE, SUBPATH, BRANCH, NO_BUILD, NO_PUSH)"
         .into()

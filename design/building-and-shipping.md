@@ -1,7 +1,8 @@
 # Building and shipping
 
 Plugins are ordinary cargo packages. One tool, `silkscreen-tool`, does the
-steps cargo alone doesn't: wrapping a `cdylib` as a CLAP bundle, signing
+steps cargo alone doesn't: wrapping a `cdylib` as a CLAP bundle (and a
+VST3, through free-audio's clap-wrapper), signing
 and notarizing it on macOS, building and serving a web page from two wasm
 modules, and publishing that page to a static site. It works in any
 workspace and reads what to build from each package's own `Cargo.toml`.
@@ -14,7 +15,7 @@ once it is installed cargo runs it as a subcommand:
 ```sh
 cargo install --locked --git <silkscreen repository> silkscreen-tool
 
-cargo silkscreen bundle <package> [--debug] [--universal | --target <triple>] [--sign] [--notarize] [--install]
+cargo silkscreen bundle <package> [--debug] [--universal | --target <triple>] [--vst3 [--validate]] [--sign] [--notarize] [--install]
 cargo silkscreen web <package> [--debug] [--serve] [--port <n>]
 cargo silkscreen deploy-web <package> [--site <checkout>]
 ```
@@ -97,8 +98,47 @@ the user's CLAP folder, replacing any older copy:
 Some hosts hold a loaded plugin's code. Restart the host after installing
 over a bundle it has open.
 
-The bundle is CLAP. VST3 builds come from wrapping it with a CLAP-to-VST3
-wrapper (see [hosts.md](hosts.md)).
+### VST3
+
+`--vst3` also builds `<target>/bundled/<bundle>.vst3`, from free-audio's
+clap-wrapper ([hosts.md](hosts.md)):
+
+1. The plugin package's library is built again as a `staticlib` (for both
+   architectures with `--universal`, joined by `lipo`), and rustc is asked
+   which native libraries it needs (`--print native-static-libs`).
+2. clap-wrapper is cloned at the tag the tool pins
+   (`silkscreen_tool::vst3::CLAP_WRAPPER_TAG`, v0.18.0). It fetches the
+   VST3 SDK and the CLAP headers at the versions that tag pins: VST3 SDK
+   3.8.0 and CLAP 1.2.10, both MIT-licensed.
+3. A small generated CMake project builds clap-wrapper's VST3 module
+   with the static library linked in, and with
+   `STATICALLY_LINKED_CLAP_ENTRY`, so the wrapper takes the plugin's
+   `clap_entry` from the module itself. The `.vst3` is self-contained: it
+   doesn't need the `.clap` installed. Its VST3 class id comes from the
+   CLAP id, and its bundle id is the CLAP id with `.vst3` appended.
+
+The output is a bundle on every platform: `Contents/MacOS/<bundle>` on
+macOS, `Contents/x86_64-win/<bundle>.vst3` on Windows (the folder layout
+Steinberg's validator expects), `Contents/x86_64-linux/<bundle>.so` on
+Linux. `--sign` and `--notarize` sign and notarize it as they do the
+`.clap`, and `--install` copies it to the user's VST3 folder:
+
+| Platform | Folder |
+|---|---|
+| macOS | `~/Library/Audio/Plug-Ins/VST3` |
+| Windows | `%LOCALAPPDATA%\Programs\Common\VST3` |
+| Linux | `~/.vst3` |
+
+clap-wrapper, the SDK and the CMake build are kept under
+`<target>/silkscreen-vst3/`, so later builds reuse them. It needs CMake
+3.21 or later, git and a C++ compiler (on macOS the Command Line Tools
+are enough); a missing tool fails before anything is built, naming what to
+install.
+
+`--validate` builds Steinberg's validator from the same SDK and runs it on
+the `.vst3`; the bundle command fails if it does. On a Mac with only the
+Command Line Tools, the SDK's CMake is told an Xcode version, which it
+otherwise insists on.
 
 ### Portable builds
 

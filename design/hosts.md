@@ -134,8 +134,10 @@ first. See [input.md](input.md).
 
 ### VST3
 
-VST3 builds come from wrapping the CLAP build with a CLAP-to-VST3 wrapper,
-such as free-audio's clap-wrapper. silkscreen has no VST3 code of its own.
+VST3 builds come from wrapping the plugin with free-audio's clap-wrapper:
+`cargo silkscreen bundle <package> --vst3` builds a self-contained `.vst3`
+with the plugin linked in ([building-and-shipping.md](building-and-shipping.md)).
+silkscreen has no VST3 code of its own.
 Design plugins to the subset both formats carry: stable integer parameter
 ids, a fixed latency, one main stereo bus, one note port, and state as an
 opaque blob. Every extension the shell registers has a VST3 counterpart

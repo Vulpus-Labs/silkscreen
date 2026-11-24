@@ -11,6 +11,15 @@ the latest tag, so a breaking change fails until the version is raised.
 
 ## Unreleased
 
+### Added
+
+- `cargo silkscreen bundle <package> --vst3` builds a VST3 beside the
+  CLAP, from free-audio's clap-wrapper (v0.18.0, which pins VST3 SDK
+  3.8.0): the plugin's library linked statically into the wrapper's VST3
+  module, so the `.vst3` stands alone. `--sign`, `--notarize` and
+  `--install` handle it with the `.clap`; `--validate` builds Steinberg's
+  validator and runs it. Needs CMake, git and a C++ compiler.
+
 ## 0.2.1 (2026-11-24)
 
 ### Fixed

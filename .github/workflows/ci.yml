@@ -94,3 +94,28 @@ jobs:
         run: cargo clippy --workspace --all-targets -- -D warnings
       - name: Test
         run: cargo test --workspace --no-fail-fast
+
+  # `cargo silkscreen bundle --vst3` on each platform: clap-wrapper, the
+  # VST3 SDK and CMake end to end, with Steinberg's validator over the
+  # result (design/building-and-shipping.md).
+  vst3:
+    name: VST3 (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, ubuntu-24.04, windows-2025]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Linux packages
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            pkg-config libasound2-dev libx11-dev libx11-xcb-dev libxcb1-dev \
+            libxcb-icccm4-dev libxcursor-dev libxkbcommon-dev libgl1-mesa-dev \
+            libwayland-dev
+      - run: rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+      - name: Bundle and validate
+        run: cargo silkscreen bundle gain-plugin --vst3 --validate
