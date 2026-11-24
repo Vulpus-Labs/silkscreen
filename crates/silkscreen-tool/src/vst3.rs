@@ -282,6 +282,9 @@ fn fetch_wrapper(work: &Path) -> Result<PathBuf, String> {
     // a finished one.
     let partial = work.join(format!("clap-wrapper-{CLAP_WRAPPER_TAG}.partial"));
     remove(&partial)?;
+    // A checkout without its CMakeLists.txt is incomplete: a cache may
+    // restore part of one. Start again.
+    remove(&dir)?;
     crate::run_command(
         Command::new("git")
             .args([
