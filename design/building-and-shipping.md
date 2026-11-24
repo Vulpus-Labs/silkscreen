@@ -136,7 +136,9 @@ are enough); a missing tool fails before anything is built, naming what to
 install.
 
 `--validate` builds Steinberg's validator from the same SDK and runs it on
-the `.vst3`; the bundle command fails if it does. On a Mac with only the
+the `.vst3`; the bundle command fails if it does. On Linux the SDK
+configures its editor host with the validator, which needs GTK 3 and
+gtkmm 3 (`libgtk-3-dev libgtkmm-3.0-dev`). On a Mac with only the
 Command Line Tools, the SDK's CMake is told an Xcode version, which it
 otherwise insists on.
 

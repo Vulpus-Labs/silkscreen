@@ -200,7 +200,14 @@ pub fn validate(ws: &Workspace, p: &Package, vst3: &Path) -> Result<(), String> 
             .env("XCODE_VERSION", "16.0")
             .arg("-DXCODE_VERSION=16.0");
     }
-    cmake(&mut configure, "configuring the VST3 validator")?;
+    cmake(&mut configure, "configuring the VST3 validator").map_err(|e| {
+        if cfg!(target_os = "linux") {
+            // The SDK configures its editor host beside the validator.
+            format!("{e}. On Linux the SDK's hosting examples also need GTK 3 and gtkmm 3 (`sudo apt install libgtk-3-dev libgtkmm-3.0-dev`)")
+        } else {
+            e
+        }
+    })?;
     cmake(
         Command::new("cmake").arg("--build").arg(&build).args([
             "--config",
