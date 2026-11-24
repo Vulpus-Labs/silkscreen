@@ -38,6 +38,11 @@ if(APPLE)
     enable_language(OBJC OBJCXX)
 endif()
 set(CMAKE_CXX_STANDARD 17)
+# Everything links into one shared module.
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+# MSVC: the C runtime as a DLL, as Rust's own code uses it. clap-wrapper
+# picks the static one unless this is set first, and the two can't mix.
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")
 set(CLAP_WRAPPER_DOWNLOAD_DEPENDENCIES TRUE)
 set(CLAP_WRAPPER_DONT_ADD_TARGETS TRUE)
 add_subdirectory("${CLAP_WRAPPER_DIR}" clap-wrapper)
@@ -444,5 +449,7 @@ mod tests {
     fn the_cmake_project_links_the_entry_statically() {
         assert!(CMAKE_LISTS.contains("STATICALLY_LINKED_CLAP_ENTRY=1"));
         assert!(CMAKE_LISTS.contains("WINDOWS_FOLDER_VST3 TRUE"));
+        assert!(CMAKE_LISTS.contains("CMAKE_POSITION_INDEPENDENT_CODE ON"));
+        assert!(CMAKE_LISTS.contains("\"MultiThreadedDLL\""));
     }
 }
