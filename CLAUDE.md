@@ -5,7 +5,11 @@
 - `design/` describes how silkscreen works now, one document per area. A
   change that alters how something works updates its document in the same
   change. Code comments cite the document (`design/presets.md`).
+- Work is tracked in `tickets/` and `epics/` (see `tickets/README.md`).
+  When a ticket's acceptance criteria are met, tick them, add a
+  `## Close-out (YYYY-MM-DD)` section and `git mv` it to `tickets/closed/`.
 - Keep commits to one change each, with a subject that says what it does.
+  A commit for a ticket names it in the subject (`0007: ...`).
 - Record user-visible changes under `## Unreleased` in `CHANGELOG.md`. A
   breaking change raises the version (0.x: the minor) in the same change;
   CI's semver check against the latest tag enforces it.
