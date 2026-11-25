@@ -11,6 +11,8 @@ the latest tag, so a breaking change fails until the version is raised.
 
 ## Unreleased
 
+## 0.3.0 (2026-11-25)
+
 ### Added
 
 - Telemetry frames (design/engine-bridge.md): an engine publishes a
