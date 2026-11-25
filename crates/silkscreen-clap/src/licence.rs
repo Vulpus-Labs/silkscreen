@@ -335,6 +335,10 @@ impl<E: Engine> Engine for Gated<E> {
         self.engine.values(report);
     }
 
+    fn frame(&mut self, write: &mut dyn FnMut(&[f32])) {
+        self.engine.frame(write);
+    }
+
     fn shown(&mut self, group: u16, page: u16) {
         self.engine.shown(group, page);
     }
@@ -459,6 +463,86 @@ mod gated_tests {
         let (meter, scope) = block(&mut g); // in the silence
         assert_eq!(meter, 0.0);
         assert!(scope.iter().all(|&s| s == 0.0));
+    }
+
+    /// Records which of its hooks were called.
+    #[derive(Default)]
+    struct Hooks(Vec<&'static str>);
+
+    impl Engine for Hooks {
+        fn set_param(&mut self, _: ParamIndex, _: f32) {
+            self.0.push("set_param");
+        }
+        fn note(&mut self, _: NoteEvent) {
+            self.0.push("note");
+        }
+        fn transport(&mut self, _: &Transport) {
+            self.0.push("transport");
+        }
+        fn process(&mut self, _: &mut [&mut [f32]]) {
+            self.0.push("process");
+        }
+        fn meters(&mut self, _: &mut dyn FnMut(usize, [f32; 2])) {
+            self.0.push("meters");
+        }
+        fn values(&mut self, _: &mut dyn FnMut(usize, f32)) {
+            self.0.push("values");
+        }
+        fn frame(&mut self, _: &mut dyn FnMut(&[f32])) {
+            self.0.push("frame");
+        }
+        fn shown(&mut self, _: u16, _: u16) {
+            self.0.push("shown");
+        }
+        fn patch_load(&mut self) {
+            self.0.push("patch_load");
+        }
+        fn scope(&mut self, _: &mut dyn FnMut(&[f32])) {
+            self.0.push("scope");
+        }
+        fn reset(&mut self) {
+            self.0.push("reset");
+        }
+    }
+
+    /// The gate stands between every host and the engine, so a hook it
+    /// doesn't forward never reaches a plugin: a new `Engine` method
+    /// belongs here and in the gate.
+    #[test]
+    fn every_hook_reaches_the_engine_through_the_gate() {
+        let mut g = Gated::new(Hooks::default(), None, 1000.0);
+        g.begin_block();
+        g.set_param(ParamIndex(0), 0.0);
+        g.note(NoteEvent::On {
+            channel: 0,
+            key: 60,
+            velocity: 1.0,
+        });
+        g.transport(&Transport::default());
+        g.process(&mut [&mut [0.0; 4]]);
+        g.meters(&mut |_, _| {});
+        g.values(&mut |_, _| {});
+        g.frame(&mut |_| {});
+        g.shown(0, 0);
+        g.patch_load();
+        g.scope(&mut |_| {});
+        g.reset();
+        assert_eq!(
+            g.engine.0,
+            [
+                "set_param",
+                "note",
+                "transport",
+                "process",
+                "meters",
+                "values",
+                "frame",
+                "shown",
+                "patch_load",
+                "scope",
+                "reset"
+            ]
+        );
     }
 
     #[test]

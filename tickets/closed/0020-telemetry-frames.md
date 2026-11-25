@@ -48,3 +48,13 @@ whole.
   a tick.
 - Breaking (`PluginUi` field, `connect`/`sab_link` arguments,
   `LayoutError::Frame`): released as 0.3.0.
+
+## Fix (2026-11-25): 0.3.1
+
+In a DAW the frame never arrived: the CLAP processor wraps every engine
+in the licence gate (`Gated`), which forwarded `meters`, `values` and
+`scope` but not the new `frame`, so the default (publish nothing) ran.
+The bridge, web and harness tests all drove an engine directly, past the
+gate. `Gated` now forwards `frame`, and a test calls every `Engine` hook
+through the gate and checks each reaches the engine (it fails with the
+forward removed). Released as 0.3.1.
