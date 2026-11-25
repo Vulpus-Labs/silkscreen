@@ -296,7 +296,13 @@ word   field
    4   engine peaks   ENGINE_METERS (4) × 2 × f32: the engine's meters
   12   values         ENGINE_VALUES (16) × f32: the engine's values
   28   scope          SCOPE_CAPACITY (4096) × f32: a mono ring
+4124   frame seq      frames published, mod 2^32; 0 for none
+4125   frame cap      F, the frame's capacity in words
+4126   frames         2 × (1 + F): two buffers, each a length and F × f32
 ```
+
+A block with no frame (F = 0) is `TELEMETRY_WORDS` long; one with a
+frame is `telemetry_words(F)`.
 
 - **Scope:** the writer stores samples, then `written` with release
   ordering; the reader loads `written` with acquire and copies the latest
@@ -309,6 +315,15 @@ word   field
   `swap(0)`.
 - **Values** are stored whole and read whole: each is the latest the
   engine wrote.
+- **The frame** is a seqlock over two buffers. The tap writes frame `n`
+  into buffer `n & 1`, its length first, then stores `n` as the frame
+  seq (release). The reader loads the seq (acquire), copies that buffer
+  a word at a time (acquire loads, not a bulk copy, so the copy is
+  ordered before the check), then loads the seq again. If it moved, the
+  tap may have begun the next frame but one in the buffer under the
+  copy, so the copy is thrown away and tried again, up to four times;
+  failing that, the reader keeps the frame it has until the next tick.
+  The tap never waits, and the editor never sees a frame that mixes two.
 
 The tap never allocates, locks or blocks.
 
@@ -326,15 +341,30 @@ block, after `process`. It records:
 - the engine's values, from `Engine::values`: `report(n, value)` for up
   to `ENGINE_VALUES` floats, such as an envelope's level, an LFO's phase
   or the number of voices sounding.
+- the engine's frame, from `Engine::frame`: `write(frame)` with a
+  snapshot of values that belong together, such as every voice's
+  position and gain, which the editor must not see half of. Up to the
+  frame's capacity; words past it are dropped.
 
 So every engine gets an output scope and meter for free, and can supply
 signals only it can see when an editor needs them.
+
+### Frame size
+
+A plugin declares its frame's size in words at build time, as
+`PluginUi::frame` (0 for none). Every host makes room for it: the CLAP
+layer with `bridge_with_frame`, the web page with
+`SabLayout::with_frame`, which records it in the shared buffer's
+telemetry size, so the worklet's `SabEngine::attach` reads it back. A
+frame can be at most `MAX_FRAME` (65536) words. Frames are for a display
+that draws many values at once; a handful of independent readings
+belong in `Engine::values`.
 
 ### Reading on `tick`
 
 On each tick the editor takes the peaks, copies the scope ring if new
 samples arrived (no more often than `ScopeStyle::refresh_ms`), and reads
-the engine values. Each feed keeps a generation that moves on when what
+the engine values and the latest frame. Each feed keeps a generation that moves on when what
 it shows changes, so a control is damaged only when its drawing would
 change. This is the compositor's time-driven damage (see
 [rendering.md](rendering.md)).
@@ -373,7 +403,9 @@ generation to repaint on:
 
 `EditorState::scope_trace()` (the built-in scope's triggered window),
 `scope_samples()` (the whole ring, untriggered, for a scope that
-triggers its own way), `meter_reading(control)` and `engine_values()`.
+triggers its own way), `meter_reading(control)`, `engine_values()` and
+`engine_frame()` (the latest complete frame; its generation moves on
+with each new one).
 
 `LevelCommand` also reads the engine meters: its press sets a gain param
 so meter `n`'s latest peak, measured before that gain, lands at a target
@@ -396,5 +428,6 @@ next change. The CLAP layer remembers the last page per group and
 replays it to an engine created at a later activation.
 
 In tests, `silkscreen-harness` fills the telemetry block with
-`Harness::output`, `engine_meter` and `engine_value` and steps `now_ms`,
+`Harness::output`, `engine_meter`, `engine_value` and `engine_frame`
+(up to `Harness::FRAME` words) and steps `now_ms`,
 so scopes and meters snapshot like any other control.

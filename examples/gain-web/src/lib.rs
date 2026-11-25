@@ -45,7 +45,7 @@ impl GainPage {
 #[wasm_bindgen]
 pub fn start(canvas: HtmlCanvasElement) -> Result<GainPage, JsValue> {
     let initial: Vec<f32> = gain::PARAMS.iter().map(|p| p.default).collect();
-    let (link, engine) = connect(&initial)?;
+    let (link, engine) = connect(&initial, gain::UI.frame)?;
     let host = silkscreen_host_web::mount(canvas, gain::editor(link))?;
     Ok(GainPage { host, engine })
 }

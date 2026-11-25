@@ -367,3 +367,30 @@ fn a_preset_load_marks_a_patch_load_before_its_gestures() {
         "one mark: {events:?}"
     );
 }
+
+#[test]
+fn the_engine_frame_reaches_the_editor_whole_on_a_tick() {
+    let mut h = Harness::new(editor, 1.0);
+    assert_eq!(h.editor().state().engine_frame(), (&[][..], 0), "none yet");
+    h.engine_frame(&[1.0, 2.0, 3.0]);
+    assert_eq!(
+        h.editor().state().engine_frame().0,
+        &[][..],
+        "not before a tick"
+    );
+    h.advance(16.0);
+    assert_eq!(h.editor().state().engine_frame(), (&[1.0, 2.0, 3.0][..], 1));
+    h.advance(16.0);
+    assert_eq!(
+        h.editor().state().engine_frame().1,
+        1,
+        "no new frame, no new generation"
+    );
+    h.engine_frame(&[4.0]).engine_frame(&[5.0, 6.0]);
+    h.advance(16.0);
+    assert_eq!(
+        h.editor().state().engine_frame(),
+        (&[5.0, 6.0][..], 2),
+        "the latest"
+    );
+}

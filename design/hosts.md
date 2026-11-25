@@ -195,7 +195,8 @@ Cross-Origin-Opener-Policy: same-origin
 Cross-Origin-Embedder-Policy: require-corp
 ```
 
-`silkscreen_host_web::connect(initial)` returns the editor's engine link and a
+`silkscreen_host_web::connect(initial, frame)`, with `frame` the
+plugin's `PluginUi::frame`, returns the editor's engine link and a
 `Connection` (the buffer for the worklet and the MIDI ring's writer). If the
 page isn't isolated (`cross_origin_isolated()` is false), the link is a
 `NullLink` and the editor runs without sound. `cargo silkscreen web --serve`

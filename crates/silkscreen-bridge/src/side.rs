@@ -74,16 +74,17 @@ fn deliver<E: Engine + ?Sized>(engine: &mut E, event: EngineEvent) {
 }
 
 impl<W: SharedWords> TelemetryTap<W> {
-    /// Record `engine`'s own meters (`Engine::meters`) and values
-    /// (`Engine::values`) for the editor.
+    /// Record `engine`'s own meters (`Engine::meters`), values
+    /// (`Engine::values`) and frame (`Engine::frame`) for the editor.
     pub fn write_engine<E: Engine + ?Sized>(&mut self, engine: &mut E) {
         engine.meters(&mut |meter, peaks| self.write_engine_peak(meter, peaks));
         engine.values(&mut |n, value| self.write_engine_value(n, value));
+        engine.frame(&mut |frame| self.write_frame(frame));
     }
 
     /// Record a rendered block: the scope from `engine` if it supplies one
     /// (`Engine::scope`, design/engine-bridge.md), else from the output; the output's
-    /// peaks; the engine's meters and values. What every audio host calls
+    /// peaks; the engine's meters, values and frame. What every audio host calls
     /// once per block, after `process`.
     pub fn write_block<E: Engine + ?Sized, C: AsRef<[f32]>>(
         &mut self,

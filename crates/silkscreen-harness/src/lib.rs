@@ -20,7 +20,8 @@ use std::path::Path;
 use std::rc::Rc;
 
 use silkscreen::bridge::{
-    EngineEvent, EngineLink, ParamIndex, RecordingLink, TelemetryReader, TelemetryTap, telemetry,
+    EngineEvent, EngineLink, ParamIndex, RecordingLink, TelemetryReader, TelemetryTap,
+    telemetry_with_frame,
 };
 use silkscreen::core::tiny_skia::Pixmap;
 use silkscreen::core::{ControlId, Modifiers, MouseButton, Point, RawEvent, RawKind, Vec2};
@@ -122,10 +123,14 @@ impl Harness {
     /// Moves per scripted drag.
     pub const DRAG_STEPS: u32 = 4;
 
+    /// The engine frame a harness's telemetry holds, in words: room for
+    /// any plugin's [`engine_frame`](Self::engine_frame).
+    pub const FRAME: usize = 4096;
+
     /// Build an editor around a recording engine link, at `scale`.
     pub fn new(make: impl FnOnce(Box<dyn EngineLink>) -> Editor, scale: f32) -> Self {
         let recorder = SharedRecorder::default();
-        let (tap, reader) = telemetry();
+        let (tap, reader) = telemetry_with_frame(Self::FRAME);
         let link = Telemetered {
             recorder: recorder.clone(),
             reader,
@@ -339,6 +344,21 @@ impl Harness {
             .as_mut()
             .expect("engine_value needs Harness::new's link")
             .write_engine_value(n, value);
+        self
+    }
+
+    /// Publish an engine frame (design/engine-bridge.md), as a host does
+    /// from `Engine::frame`: the editor takes it on the next tick.
+    ///
+    /// # Panics
+    /// If the harness was built [`with_link`](Self::with_link), or `frame`
+    /// is over [`FRAME`](Self::FRAME) words.
+    pub fn engine_frame(&mut self, frame: &[f32]) -> &mut Self {
+        assert!(frame.len() <= Self::FRAME, "a frame over Harness::FRAME");
+        self.tap
+            .as_mut()
+            .expect("engine_frame needs Harness::new's link")
+            .write_frame(frame);
         self
     }
 

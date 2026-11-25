@@ -70,15 +70,20 @@ impl SharedWords for SabWords {
     }
 }
 
-/// A new `SharedArrayBuffer` laid out for `initial.len()` params and a
-/// ring of `capacity` records, and the UI's link over it. Hand the buffer
+/// A new `SharedArrayBuffer` laid out for `initial.len()` params, a
+/// ring of `capacity` records and an engine frame of `frame` words, and
+/// the UI's link over it. Hand the buffer
 /// to the worklet (`processorOptions`); the engine attaches with
 /// [`SabEngine::attach`](silkscreen::bridge::sab::SabEngine::attach).
 ///
 /// Constructing a `SharedArrayBuffer` needs a cross-origin isolated page
 /// (COOP and COEP headers).
-pub fn sab_link(initial: &[f32], capacity: usize) -> Result<SabUi<SabWords>, LayoutError> {
-    let layout = SabLayout::new(initial.len(), capacity)?;
+pub fn sab_link(
+    initial: &[f32],
+    capacity: usize,
+    frame: usize,
+) -> Result<SabUi<SabWords>, LayoutError> {
+    let layout = SabLayout::new(initial.len(), capacity)?.with_frame(frame)?;
     let words = SabWords::new(&SharedArrayBuffer::new(layout.bytes() as u32));
     SabUi::create(words, layout, initial)
 }
@@ -95,7 +100,7 @@ mod tests {
     /// `Int32Array` views, as the UI and worklet have.
     #[wasm_bindgen_test]
     fn both_ends_meet_through_a_shared_array_buffer() {
-        let mut ui = sab_link(&[0.0, 1.0, 2.0], 8).unwrap();
+        let mut ui = sab_link(&[0.0, 1.0, 2.0], 8, 0).unwrap();
         let engine_view = SabWords::new(&ui_buffer(&ui));
         let mut engine = SabEngine::attach(engine_view).unwrap();
         assert_eq!(engine.read(ParamIndex(2)), 2.0);

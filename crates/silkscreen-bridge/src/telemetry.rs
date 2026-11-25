@@ -13,6 +13,9 @@
 //!    4   engine peaks   ENGINE_METERS × 2 × f32 bits, likewise
 //!   12   values         ENGINE_VALUES × f32 bits: the engine's latest
 //!   28   scope          SCOPE_CAPACITY × f32 bits: the mono sum, a ring
+//! 4124   frame seq      frames published, mod 2^32; 0 for none (tap)
+//! 4125   frame cap      F, the frame's capacity in words  (set at creation)
+//! 4126   frames         2 × (1 + F): two buffers, each a length and F × f32
 //! ```
 //!
 //! **Single-writer discipline:** the tap writes the scope samples, then
@@ -23,6 +26,14 @@
 //! sample is whole, but a reader copying the scope while the tap writes
 //! may mix in what was written during the copy; the next frame replaces
 //! it.
+//!
+//! **Frames** are a seqlock over two buffers. The tap writes frame `n`
+//! into buffer `n & 1`, then stores `n` as the frame seq (release). The
+//! reader loads the seq (acquire), copies that buffer word by word
+//! (acquire), and loads the seq again: if it moved, the tap may have
+//! started on the buffer under the copy, so the copy is thrown away and
+//! tried again. The tap never waits; the reader keeps the last complete
+//! frame if it can't get a newer one.
 //!
 //! [design/engine-bridge.md]: https://github.com/Vulpus-Labs/silkscreen/blob/main/design/engine-bridge.md
 
@@ -52,16 +63,76 @@ const ENGINE_PEAKS_AT: usize = PEAKS_AT + MAX_CHANNELS;
 const VALUES_AT: usize = ENGINE_PEAKS_AT + ENGINE_METERS * 2;
 const SCOPE_AT: usize = VALUES_AT + ENGINE_VALUES;
 
-/// Size of a telemetry block, in words.
-pub const TELEMETRY_WORDS: usize = SCOPE_AT + SCOPE_CAPACITY;
+const FRAME_SEQ_AT: usize = SCOPE_AT + SCOPE_CAPACITY;
+const FRAME_CAP_AT: usize = FRAME_SEQ_AT + 1;
+const FRAMES_AT: usize = FRAME_CAP_AT + 1;
 
-/// Create a connected pair over one block of native atomics.
+/// Size of a telemetry block with no frame, in words. A block with a
+/// frame is [`telemetry_words`] long.
+pub const TELEMETRY_WORDS: usize = FRAMES_AT + 2;
+
+/// The largest frame a block holds, in words: far more than a display
+/// needs, and a check on a corrupt header.
+pub const MAX_FRAME: usize = 1 << 16;
+
+/// Tries a [`TelemetryReader::poll_frame`] makes at a complete copy
+/// before keeping the frame it has.
+const FRAME_TRIES: usize = 4;
+
+/// Size of a telemetry block whose frame holds `frame` words.
+pub const fn telemetry_words(frame: usize) -> usize {
+    FRAMES_AT + 2 * (1 + frame)
+}
+
+/// The frame capacity of a block `words` long, if it is a block's size.
+pub const fn frame_capacity(words: usize) -> Option<usize> {
+    if words < TELEMETRY_WORDS || !(words - FRAMES_AT).is_multiple_of(2) {
+        return None;
+    }
+    let frame = (words - FRAMES_AT) / 2 - 1;
+    if frame > MAX_FRAME { None } else { Some(frame) }
+}
+
+/// Create a connected pair over one block of native atomics, with no
+/// frame.
 pub fn telemetry() -> (TelemetryTap, TelemetryReader) {
-    let words: Arc<[AtomicU32]> = (0..TELEMETRY_WORDS).map(|_| AtomicU32::new(0)).collect();
+    telemetry_with_frame(0)
+}
+
+/// Create a connected pair over one block of native atomics whose frame
+/// holds `frame` words ([design/engine-bridge.md]).
+///
+/// # Panics
+/// If `frame` is over [`MAX_FRAME`].
+///
+/// [design/engine-bridge.md]: https://github.com/Vulpus-Labs/silkscreen/blob/main/design/engine-bridge.md
+pub fn telemetry_with_frame(frame: usize) -> (TelemetryTap, TelemetryReader) {
+    assert!(
+        frame <= MAX_FRAME,
+        "a frame of {frame} words is over MAX_FRAME"
+    );
+    let words: Arc<[AtomicU32]> = (0..telemetry_words(frame))
+        .map(|_| AtomicU32::new(0))
+        .collect();
+    init_frame(&*words, 0, frame);
     (
         TelemetryTap::over(Arc::clone(&words), 0),
         TelemetryReader::over(Box::new(words), 0),
     )
+}
+
+/// Record the frame capacity of the block at `base`: by whoever lays the
+/// block out, before either end is made over it.
+pub(crate) fn init_frame(words: &(impl SharedWords + ?Sized), base: usize, frame: usize) {
+    words.store(base + FRAME_CAP_AT, frame as u32);
+}
+
+/// The frame capacity recorded in the block at `base`, held to what the
+/// words have room for.
+fn read_frame_capacity(words: &(impl SharedWords + ?Sized), base: usize) -> usize {
+    let cap = words.load(base + FRAME_CAP_AT) as usize;
+    let room = words.len().saturating_sub(base + FRAMES_AT) / 2;
+    cap.min(room.saturating_sub(1))
 }
 
 /// The audio thread's end. Never allocates, locks or blocks.
@@ -71,18 +142,56 @@ pub struct TelemetryTap<W = Arc<[AtomicU32]>> {
     base: usize,
     /// Samples written: this end is the only writer, so it keeps its own.
     written: u32,
+    /// Frames published, likewise.
+    frame_seq: u32,
+    /// The frame's capacity in words.
+    frame_cap: usize,
 }
 
 impl<W: SharedWords> TelemetryTap<W> {
-    /// The tap over the block at `base` in `words` ([`TELEMETRY_WORDS`]
-    /// long from there).
+    /// The tap over the block at `base` in `words` ([`telemetry_words`]
+    /// long from there, for the frame capacity the block records).
     pub fn over(words: W, base: usize) -> Self {
         let written = words.load(base + WRITTEN_AT);
+        let frame_seq = words.load(base + FRAME_SEQ_AT);
+        let frame_cap = read_frame_capacity(&words, base);
         Self {
             words,
             base,
             written,
+            frame_seq,
+            frame_cap,
         }
+    }
+
+    /// The most words a frame holds: what the block was made with.
+    pub fn frame_capacity(&self) -> usize {
+        self.frame_cap
+    }
+
+    /// Publish `frame` as the engine's latest ([design/engine-bridge.md]): the
+    /// reader sees all of it or none of it. Words past
+    /// [`frame_capacity`](Self::frame_capacity) are dropped.
+    ///
+    /// [design/engine-bridge.md]: https://github.com/Vulpus-Labs/silkscreen/blob/main/design/engine-bridge.md
+    pub fn write_frame(&mut self, frame: &[f32]) {
+        if self.frame_cap == 0 {
+            return;
+        }
+        let n = frame.len().min(self.frame_cap);
+        // 0 means no frame yet; skipping it keeps the buffers alternating.
+        let next = match self.frame_seq.wrapping_add(1) {
+            0 => 2,
+            n => n,
+        };
+        let (w, base) = (&self.words, self.base);
+        let buffer = base + FRAMES_AT + (next & 1) as usize * (1 + self.frame_cap);
+        w.store(buffer, n as u32);
+        for (i, v) in frame[..n].iter().enumerate() {
+            w.store(buffer + 1 + i, v.to_bits());
+        }
+        self.frame_seq = next;
+        w.store(base + FRAME_SEQ_AT, next);
     }
 
     /// Record one block of output: the mono sum into the scope, each of
@@ -172,6 +281,11 @@ pub struct TelemetryReader {
     base: usize,
     /// `written` as of the last [`scope`](Self::scope).
     seen: u32,
+    /// The frame seq of `frame`.
+    frame_seen: u32,
+    /// The latest complete frame, and room to copy the next.
+    frame: Vec<f32>,
+    scratch: Box<[u32]>,
 }
 
 impl std::fmt::Debug for TelemetryReader {
@@ -186,11 +300,56 @@ impl std::fmt::Debug for TelemetryReader {
 impl TelemetryReader {
     /// The reader of the block at `base` in `words`.
     pub fn over(words: Box<dyn ReaderWords>, base: usize) -> Self {
+        let cap = read_frame_capacity(&*words, base);
         Self {
             words,
             base,
             seen: 0,
+            frame_seen: 0,
+            frame: Vec::with_capacity(cap),
+            scratch: vec![0; cap].into_boxed_slice(),
         }
+    }
+
+    /// The most words a frame holds: what the block was made with.
+    pub fn frame_capacity(&self) -> usize {
+        self.scratch.len()
+    }
+
+    /// Take the engine's latest frame if one was published since the last
+    /// poll, and return whether one was. A copy that races the tap is
+    /// tried again a few times, then left for the next poll: the frame
+    /// kept is always one the tap wrote whole.
+    pub fn poll_frame(&mut self) -> bool {
+        let cap = self.scratch.len();
+        let (w, base) = (&self.words, self.base);
+        for _ in 0..FRAME_TRIES {
+            let seq = w.load(base + FRAME_SEQ_AT);
+            if seq == 0 || seq == self.frame_seen {
+                return false;
+            }
+            let buffer = base + FRAMES_AT + (seq & 1) as usize * (1 + cap);
+            let n = (w.load(buffer) as usize).min(cap);
+            // Word by word, each an acquire load: a bulk copy needn't be
+            // ordered before the check below.
+            for (i, word) in self.scratch[..n].iter_mut().enumerate() {
+                *word = w.load(buffer + 1 + i);
+            }
+            if w.load(base + FRAME_SEQ_AT) == seq {
+                self.frame.clear();
+                self.frame
+                    .extend(self.scratch[..n].iter().map(|&b| f32::from_bits(b)));
+                self.frame_seen = seq;
+                return true;
+            }
+        }
+        false
+    }
+
+    /// The latest complete frame [`poll_frame`](Self::poll_frame) took:
+    /// empty before the first.
+    pub fn frame(&self) -> &[f32] {
+        &self.frame
     }
 
     /// Samples written so far, mod 2^32.
@@ -319,6 +478,98 @@ mod tests {
                 levels: [0.5, 0.0]
             }
         );
+    }
+
+    #[test]
+    fn block_sizes_give_their_frame_capacity_back() {
+        assert_eq!(telemetry_words(0), TELEMETRY_WORDS);
+        for frame in [0, 1, 70, MAX_FRAME] {
+            assert_eq!(frame_capacity(telemetry_words(frame)), Some(frame));
+        }
+        assert_eq!(frame_capacity(TELEMETRY_WORDS - 1), None);
+        assert_eq!(frame_capacity(TELEMETRY_WORDS + 1), None);
+        assert_eq!(frame_capacity(telemetry_words(MAX_FRAME + 1)), None);
+    }
+
+    #[test]
+    fn a_frame_is_read_whole_once_and_clipped_to_its_capacity() {
+        let (mut tap, mut reader) = telemetry_with_frame(3);
+        assert_eq!((tap.frame_capacity(), reader.frame_capacity()), (3, 3));
+        assert!(!reader.poll_frame(), "nothing published");
+        assert!(reader.frame().is_empty());
+        tap.write_frame(&[1.0, 2.0]);
+        assert!(reader.poll_frame());
+        assert_eq!(reader.frame(), &[1.0, 2.0]);
+        assert!(!reader.poll_frame(), "nothing new");
+        assert_eq!(reader.frame(), &[1.0, 2.0], "kept");
+        tap.write_frame(&[3.0, 4.0, 5.0, 6.0]);
+        tap.write_frame(&[7.0, 8.0, 9.0, 10.0]);
+        assert!(reader.poll_frame());
+        assert_eq!(reader.frame(), &[7.0, 8.0, 9.0], "the latest, clipped");
+    }
+
+    #[test]
+    fn a_block_without_a_frame_ignores_one() {
+        let (mut tap, mut reader) = telemetry();
+        tap.write_frame(&[1.0]);
+        assert!(!reader.poll_frame());
+        assert!(reader.frame().is_empty());
+    }
+
+    #[test]
+    fn a_tap_over_a_used_block_carries_on_its_count() {
+        let words: Arc<[AtomicU32]> = (0..telemetry_words(2)).map(|_| AtomicU32::new(0)).collect();
+        init_frame(&*words, 0, 2);
+        let mut reader = TelemetryReader::over(Box::new(Arc::clone(&words)), 0);
+        TelemetryTap::over(Arc::clone(&words), 0).write_frame(&[1.0]);
+        assert!(reader.poll_frame());
+        // A new engine end, as after a reactivation: its frame is fresh.
+        TelemetryTap::over(Arc::clone(&words), 0).write_frame(&[2.0]);
+        assert!(reader.poll_frame());
+        assert_eq!(reader.frame(), &[2.0]);
+    }
+
+    #[test]
+    fn the_frame_count_skips_zero_when_it_wraps() {
+        let (mut tap, mut reader) = telemetry_with_frame(1);
+        tap.frame_seq = u32::MAX - 1;
+        for v in 0..4 {
+            tap.write_frame(&[v as f32]);
+            assert!(reader.poll_frame(), "frame {v}");
+            assert_eq!(reader.frame(), &[v as f32]);
+        }
+    }
+
+    #[test]
+    fn a_writer_at_full_speed_never_tears_a_frame() {
+        const FRAMES: u32 = 200_000;
+        const LEN: usize = 70;
+        let (mut tap, mut reader) = telemetry_with_frame(LEN);
+        let writer = std::thread::spawn(move || {
+            let mut frame = [0.0; LEN];
+            for n in 1..=FRAMES {
+                // Every word of frame n is n, and the length varies with
+                // it: a torn copy mixes values or lengths.
+                let len = LEN - (n as usize % 7);
+                frame[..len].fill(n as f32);
+                tap.write_frame(&frame[..len]);
+            }
+        });
+        let (mut taken, mut last) = (0, 0.0);
+        while !writer.is_finished() {
+            if reader.poll_frame() {
+                let frame = reader.frame();
+                let n = frame[0];
+                assert!(frame.iter().all(|&v| v == n), "a torn frame at {n}");
+                assert_eq!(frame.len(), LEN - (n as usize % 7), "a torn length at {n}");
+                assert!(n > last, "frames go forward");
+                (taken, last) = (taken + 1, n);
+            }
+        }
+        writer.join().unwrap();
+        reader.poll_frame(); // unless the loop took it already
+        assert_eq!(reader.frame()[0], FRAMES as f32, "the last frame, at rest");
+        assert!(taken > 0, "frames were read while the writer ran");
     }
 
     #[test]

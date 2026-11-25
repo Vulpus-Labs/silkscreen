@@ -20,7 +20,7 @@
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
 
-use crate::telemetry::{TelemetryReader, TelemetryTap, telemetry};
+use crate::telemetry::{TelemetryReader, TelemetryTap, telemetry_with_frame};
 use crate::{EngineEvent, EngineLink, ParamIndex};
 
 #[derive(Debug)]
@@ -36,7 +36,21 @@ struct Shared {
 
 /// Create a connected pair. `initial` seeds every value (use the model's
 /// current values); `ring_capacity` bounds the UI → engine event queue.
+/// Its telemetry carries no engine frame: see [`bridge_with_frame`].
 pub fn bridge(initial: &[f32], ring_capacity: usize) -> (UiLink, EngineEnd) {
+    bridge_with_frame(initial, ring_capacity, 0)
+}
+
+/// [`bridge`], with room in its telemetry for an engine frame of `frame`
+/// words (design/engine-bridge.md): `PluginUi::frame`.
+///
+/// # Panics
+/// If `frame` is over [`MAX_FRAME`](crate::telemetry::MAX_FRAME).
+pub fn bridge_with_frame(
+    initial: &[f32],
+    ring_capacity: usize,
+    frame: usize,
+) -> (UiLink, EngineEnd) {
     let slots = || {
         initial
             .iter()
@@ -54,7 +68,7 @@ pub fn bridge(initial: &[f32], ring_capacity: usize) -> (UiLink, EngineEnd) {
         overflows: AtomicU64::new(0),
     });
     let (producer, consumer) = rtrb::RingBuffer::new(ring_capacity);
-    let (tap, reader) = telemetry();
+    let (tap, reader) = telemetry_with_frame(frame);
     (
         UiLink {
             shared: shared.clone(),

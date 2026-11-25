@@ -11,6 +11,26 @@ the latest tag, so a breaking change fails until the version is raised.
 
 ## Unreleased
 
+### Added
+
+- Telemetry frames (design/engine-bridge.md): an engine publishes a
+  snapshot of many values with `Engine::frame`, once per block, and the
+  editor reads the latest complete one with `EditorState::engine_frame`,
+  never a torn one. The tap never waits or allocates. A plugin sizes its
+  frame with `PluginUi::frame`. Also `bridge_with_frame`,
+  `telemetry_with_frame`, `SabLayout::with_frame`,
+  `TelemetryTap::write_frame`, `TelemetryReader::poll_frame` and
+  `frame`, and `Harness::engine_frame` for tests.
+
+### Changed (breaking)
+
+- `PluginUi` has a `frame` field: add `frame: 0` to a plugin that
+  publishes no frame.
+- `silkscreen_host_web::connect` and `sab_link` take the frame size:
+  pass `PluginUi::frame`.
+- `LayoutError` has a `Frame` variant, and the shared buffer's layout is
+  version 4: rebuild a web page's UI and engine modules together.
+
 ## 0.2.2 (2026-11-24)
 
 ### Added

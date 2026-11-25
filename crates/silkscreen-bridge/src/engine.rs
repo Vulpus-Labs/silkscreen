@@ -38,6 +38,17 @@ pub trait Engine: Send + 'static {
     /// [design/engine-bridge.md]: https://github.com/Vulpus-Labs/silkscreen/blob/main/design/engine-bridge.md
     fn values(&mut self, _report: &mut dyn FnMut(usize, f32)) {}
 
+    /// Publish a frame for the editor ([design/engine-bridge.md]): `write(frame)`
+    /// with a snapshot of many values that belong together, such as every
+    /// voice's position, which the editor reads all or nothing of. Up to
+    /// the frame size the plugin declares (`PluginUi::frame`); words past
+    /// it are dropped. Hosts call it once per block, after `process`; the
+    /// editor reads the latest. An engine with nothing new to show writes
+    /// nothing. Most engines publish none.
+    ///
+    /// [design/engine-bridge.md]: https://github.com/Vulpus-Labs/silkscreen/blob/main/design/engine-bridge.md
+    fn frame(&mut self, _write: &mut dyn FnMut(&[f32])) {}
+
     /// The editor now shows `page` of page group `group`
     /// ([`EngineEvent::Shown`](crate::EngineEvent::Shown)): for telemetry
     /// that follows the page, as a scope of the shown layer. Most engines

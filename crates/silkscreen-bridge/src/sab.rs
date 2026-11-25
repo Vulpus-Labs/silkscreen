@@ -7,7 +7,7 @@
 //! JS `Atomics` over an `Int32Array` on the web, `[AtomicU32]` in native
 //! tests. [`SabUi`] and [`SabEngine`] are the same code on every target.
 //!
-//! # Layout, version 3
+//! # Layout, version 4
 //!
 //! This is a **versioned contract** between separately compiled modules,
 //! like the [record codec](crate::codec). Change it only by bumping
@@ -17,7 +17,7 @@
 //! ```text
 //! word         field
 //!    0         magic          0x5353_4142 ("SSAB")
-//!    1         version        3
+//!    1         version        4
 //!    2         params         N, the param count
 //!    3         capacity       C, ring records; a power of two
 //!    4         write          ring records written, mod 2^32   (UI)
@@ -25,7 +25,8 @@
 //!    6         resync         sticky flag: UI sets, engine clears
 //!    7         load           sticky flag: UI sets, engine clears
 //!    8         overflows      events dropped on a full ring    (UI)
-//!    9         telemetry      T, the telemetry block's size (a check)
+//!    9         telemetry      T, the telemetry block's size: it gives
+//!                             the frame's capacity (`telemetry::frame_capacity`)
 //!   10         midi write     MIDI words written, mod 2^32     (page)
 //!   11         midi read      MIDI words read, mod 2^32        (engine)
 //!   12         midi capacity  M, MIDI words; a power of two
@@ -45,7 +46,8 @@
 //! output's peaks and the engine's meters (design/engine-bridge.md). Version 3
 //! added the MIDI ring: note input from the page standing in for a
 //! host (design/hosts.md), written by one [`SabMidiOut`] and decoded with
-//! [`NoteEvent::from_midi`].
+//! [`NoteEvent::from_midi`]. Version 4 added the engine's frame to the
+//! telemetry block, sized by the layout ([`SabLayout::with_frame`]).
 //!
 //! **Single-writer discipline** matches the native transport's: the UI
 //! writes `write`, the records, the UI slots and `overflows`, and sets
@@ -58,12 +60,14 @@
 //! [design/hosts.md]: https://github.com/Vulpus-Labs/silkscreen/blob/main/design/hosts.md
 
 use crate::codec::{self, RECORD_SIZE, Record};
-use crate::telemetry::{TELEMETRY_WORDS, TelemetryReader, TelemetryTap};
+use crate::telemetry::{
+    MAX_FRAME, TelemetryReader, TelemetryTap, frame_capacity, init_frame, telemetry_words,
+};
 pub use crate::words::SharedWords;
 use crate::{EngineEvent, EngineLink, NoteEvent, ParamIndex};
 
 /// Layout version.
-pub const VERSION: u32 = 3;
+pub const VERSION: u32 = 4;
 
 /// MIDI words the ring holds: far more than hands on a keyboard send in
 /// one quantum.
@@ -96,6 +100,8 @@ pub struct SabLayout {
     params: usize,
     capacity: usize,
     midi_capacity: usize,
+    /// The engine frame's capacity in words.
+    frame: usize,
 }
 
 /// Why a buffer can't be used.
@@ -109,8 +115,10 @@ pub enum LayoutError {
     Magic(u32),
     /// Written by another layout version.
     Version(u32),
-    /// Written by a build with another telemetry block size.
+    /// The telemetry block's recorded size isn't one a block can have.
     Telemetry(u32),
+    /// A frame over [`MAX_FRAME`] words.
+    Frame(usize),
 }
 
 impl core::fmt::Display for LayoutError {
@@ -128,7 +136,11 @@ impl core::fmt::Display for LayoutError {
             LayoutError::Magic(m) => write!(f, "not a silkscreen shared buffer (magic {m:#x})"),
             LayoutError::Telemetry(t) => write!(
                 f,
-                "shared buffer telemetry block is {t} words; this build's is {TELEMETRY_WORDS}; rebuild both modules together"
+                "shared buffer telemetry block is {t} words, not a telemetry block's size; rebuild both modules together"
+            ),
+            LayoutError::Frame(n) => write!(
+                f,
+                "a frame of {n} words is over the {MAX_FRAME} a telemetry block holds"
             ),
             LayoutError::Version(v) => write!(
                 f,
@@ -147,7 +159,22 @@ impl SabLayout {
             params,
             capacity,
             midi_capacity: MIDI_CAPACITY,
+            frame: 0,
         })
+    }
+
+    /// This layout with room in its telemetry block for an engine frame
+    /// of `frame` words (design/engine-bridge.md).
+    pub fn with_frame(self, frame: usize) -> Result<Self, LayoutError> {
+        if frame > MAX_FRAME {
+            return Err(LayoutError::Frame(frame));
+        }
+        Ok(Self { frame, ..self })
+    }
+
+    /// The engine frame's capacity in words.
+    pub fn frame(&self) -> usize {
+        self.frame
     }
 
     /// The layout recorded in `words`' header, checked against its size.
@@ -166,14 +193,15 @@ impl SabLayout {
             VERSION => {}
             v => return Err(LayoutError::Version(v)),
         }
-        match words.load(TELEMETRY_SIZE_AT) as usize {
-            TELEMETRY_WORDS => {}
-            t => return Err(LayoutError::Telemetry(t as u32)),
-        }
+        let t = words.load(TELEMETRY_SIZE_AT);
+        let Some(frame) = frame_capacity(t as usize) else {
+            return Err(LayoutError::Telemetry(t));
+        };
         let mut layout = Self::new(
             words.load(PARAMS_AT) as usize,
             words.load(CAPACITY_AT) as usize,
-        )?;
+        )?
+        .with_frame(frame)?;
         layout.midi_capacity = words.load(MIDI_CAPACITY_AT) as usize;
         if layout.midi_capacity < 2 || !layout.midi_capacity.is_power_of_two() {
             return Err(LayoutError::Capacity(layout.midi_capacity));
@@ -213,7 +241,7 @@ impl SabLayout {
         self.dirty() + self.params.div_ceil(32)
     }
     fn midi(&self) -> usize {
-        self.telemetry() + TELEMETRY_WORDS
+        self.telemetry() + telemetry_words(self.frame)
     }
 
     fn check_size(&self, words: &impl SharedWords) -> Result<(), LayoutError> {
@@ -240,7 +268,8 @@ impl SabLayout {
         }
         words.store(PARAMS_AT, self.params as u32);
         words.store(CAPACITY_AT, self.capacity as u32);
-        words.store(TELEMETRY_SIZE_AT, TELEMETRY_WORDS as u32);
+        words.store(TELEMETRY_SIZE_AT, telemetry_words(self.frame) as u32);
+        init_frame(words, self.telemetry(), self.frame);
         words.store(MIDI_CAPACITY_AT, self.midi_capacity as u32);
         words.store(VERSION_AT, VERSION);
         // Last: a reader that sees the magic sees the rest.
@@ -632,6 +661,7 @@ mod tests {
     use std::sync::atomic::{AtomicU32, Ordering};
 
     use super::*;
+    use crate::telemetry::TELEMETRY_WORDS;
 
     const A: ParamIndex = ParamIndex(0);
     const B: ParamIndex = ParamIndex(1);
@@ -687,7 +717,7 @@ mod tests {
             (0..14).map(|i| w.load(i)).collect::<Vec<_>>(),
             [
                 MAGIC,
-                3,
+                VERSION,
                 3,
                 4,
                 0,
@@ -736,6 +766,27 @@ mod tests {
         let err = SabEngine::attach(words).unwrap_err();
         assert_eq!(err, LayoutError::Telemetry(99));
         assert!(err.to_string().contains("rebuild both modules"));
+    }
+
+    #[test]
+    fn a_frame_sized_layout_reads_back_and_frames_cross_the_buffer() {
+        let layout = SabLayout::new(2, 4).unwrap().with_frame(5).unwrap();
+        assert_eq!(layout.words(), SabLayout::new(2, 4).unwrap().words() + 10);
+        let words = buffer(layout);
+        let mut ui = SabUi::create(words.clone(), layout, &[0.0; 2]).unwrap();
+        let mut engine = SabEngine::attach(words).unwrap();
+        assert_eq!(ui.layout().frame(), 5);
+        assert_eq!(engine.telemetry().frame_capacity(), 5);
+        engine.telemetry().write_frame(&[1.0, 2.0, 3.0]);
+        let reader = ui.telemetry().unwrap();
+        assert_eq!(reader.frame_capacity(), 5);
+        assert!(reader.poll_frame());
+        assert_eq!(reader.frame(), &[1.0, 2.0, 3.0]);
+        assert!(!reader.poll_frame(), "nothing new");
+        assert_eq!(
+            SabLayout::new(1, 4).unwrap().with_frame(MAX_FRAME + 1),
+            Err(LayoutError::Frame(MAX_FRAME + 1))
+        );
     }
 
     #[test]

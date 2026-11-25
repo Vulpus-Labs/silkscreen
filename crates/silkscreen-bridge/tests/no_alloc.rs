@@ -136,3 +136,15 @@ fn web_engine_render_never_allocates() {
     assert_eq!(n, 0, "WebEngine allocated {n} times");
     assert_eq!(engine.buffer(0)[0], 0.5);
 }
+
+#[test]
+fn publishing_a_frame_never_allocates() {
+    let (_ui, mut engine) = silkscreen_bridge::bridge_with_frame(&[0.0], 8, 70);
+    let frame = [0.5; 70];
+    let n = allocations(|| {
+        for _ in 0..100 {
+            engine.telemetry().write_frame(&frame);
+        }
+    });
+    assert_eq!(n, 0, "write_frame allocated {n} times");
+}

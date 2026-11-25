@@ -45,7 +45,7 @@ impl TonePage {
 #[wasm_bindgen]
 pub fn start(canvas: HtmlCanvasElement) -> Result<TonePage, JsValue> {
     let initial: Vec<f32> = tone::PARAMS.iter().map(|p| p.default).collect();
-    let (link, engine) = connect(&initial)?;
+    let (link, engine) = connect(&initial, tone::UI.frame)?;
     let host = silkscreen_host_web::mount(canvas, tone::editor(link))?;
     Ok(TonePage { host, engine })
 }

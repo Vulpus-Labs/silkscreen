@@ -33,7 +33,10 @@ impl PresetPage {
         let presets = open_preset_store(plugin.web_prefix).await;
         let restore = restore(plugin.web_prefix).await;
         // The engine starts from the restored sound.
-        let (link, engine) = connect(&initial_values(restore.as_ref(), plugin.specs))?;
+        let (link, engine) = connect(
+            &initial_values(restore.as_ref(), plugin.specs),
+            plugin.frame,
+        )?;
         let mut state = (plugin.state)(link);
         // Every preset written is marked as this build's (design/presets.md).
         state.set_app(plugin.app());

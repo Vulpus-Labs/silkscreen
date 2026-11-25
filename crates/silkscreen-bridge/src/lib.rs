@@ -45,10 +45,10 @@ pub use fp::DenormalGuard;
 pub use link::RecordingLink;
 pub use link::{EngineLink, NullLink};
 #[cfg(feature = "std")]
-pub use native::{EngineEnd, UiLink, bridge};
+pub use native::{EngineEnd, UiLink, bridge, bridge_with_frame};
 pub use note::NoteEvent;
 #[cfg(feature = "std")]
 pub use side::{EngineSide, patch_loaded};
 #[cfg(feature = "std")]
-pub use telemetry::{Peaks, TelemetryReader, TelemetryTap, telemetry};
+pub use telemetry::{Peaks, TelemetryReader, TelemetryTap, telemetry, telemetry_with_frame};
 pub use transport::Transport;

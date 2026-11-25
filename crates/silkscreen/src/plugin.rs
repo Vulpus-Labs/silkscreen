@@ -32,6 +32,10 @@ pub struct PluginUi {
     pub factory: &'static [FactoryPreset],
     /// The faceplate pixels.
     pub faceplate: &'static EmbeddedPngs,
+    /// The words in the engine's frame (`Engine::frame`,
+    /// design/engine-bridge.md): every host's telemetry makes room for this
+    /// many. 0 for an engine that publishes none.
+    pub frame: usize,
     /// The editor state over a link to the engine, without presets: each
     /// host sets them up with [`factory`](Self::factory) and its own
     /// store.
@@ -59,6 +63,7 @@ impl std::fmt::Debug for PluginUi {
             .field("vendor", &self.vendor)
             .field("product", &self.product)
             .field("version", &self.version)
+            .field("frame", &self.frame)
             .finish_non_exhaustive()
     }
 }

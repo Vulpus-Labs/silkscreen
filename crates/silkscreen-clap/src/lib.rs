@@ -35,7 +35,7 @@ use clack_extensions::params::PluginParams;
 use clack_extensions::state::PluginState;
 use clack_extensions::timer::{HostTimer, PluginTimer, TimerId};
 use clack_plugin::prelude::*;
-use silkscreen::bridge::{Engine, bridge};
+use silkscreen::bridge::{Engine, bridge_with_frame};
 use silkscreen::{EditorState, EngineLink, PluginUi, PresetStore};
 use silkscreen_host_native::EmbeddedWindow;
 
@@ -209,7 +209,8 @@ impl<P: SilkscreenPlugin> DefaultPluginFactory for Clap<P> {
         shared: &'a Shared<P>,
     ) -> Result<MainThread<'a, P>, PluginError> {
         let defaults: Vec<f32> = P::UI.specs.iter().map(|s| s.default).collect();
-        let (ui, engine_end) = bridge(&defaults, silkscreen::bridge::RING_CAPACITY);
+        let (ui, engine_end) =
+            bridge_with_frame(&defaults, silkscreen::bridge::RING_CAPACITY, P::UI.frame);
         Ok(MainThread {
             host,
             shared,

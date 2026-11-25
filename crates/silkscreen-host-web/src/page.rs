@@ -42,8 +42,12 @@ impl Connection {
 }
 
 /// The editor's engine link and the page's side of it, the engine
-/// starting from `initial` (every param's value).
-pub fn connect(initial: &[f32]) -> Result<(Box<dyn EngineLink>, Connection), JsValue> {
+/// starting from `initial` (every param's value), with room for an engine
+/// frame of `frame` words (`PluginUi::frame`).
+pub fn connect(
+    initial: &[f32],
+    frame: usize,
+) -> Result<(Box<dyn EngineLink>, Connection), JsValue> {
     if !cross_origin_isolated() {
         let none = Connection {
             sab: None,
@@ -51,7 +55,7 @@ pub fn connect(initial: &[f32]) -> Result<(Box<dyn EngineLink>, Connection), JsV
         };
         return Ok((Box::new(NullLink), none));
     }
-    let mut link = sab_link(initial, RING_CAPACITY).map_err(|e| e.to_string())?;
+    let mut link = sab_link(initial, RING_CAPACITY, frame).map_err(|e| e.to_string())?;
     let connection = Connection {
         sab: Some(link.words().buffer()),
         midi: link.midi_out(),

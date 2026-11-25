@@ -55,6 +55,10 @@ pub(super) struct Live {
     /// the ticks that changed them.
     values: [f32; ENGINE_VALUES],
     values_generation: u64,
+    /// The engine's latest frame (`Engine::frame`), and a count of the
+    /// frames taken.
+    frame: Vec<f32>,
+    frame_generation: u64,
 }
 
 impl Live {
@@ -82,6 +86,8 @@ impl Live {
             engine: [[0.0; 2]; ENGINE_METERS],
             values: [0.0; ENGINE_VALUES],
             values_generation: 0,
+            frame: Vec::new(),
+            frame_generation: 0,
         }
     }
 
@@ -146,6 +152,11 @@ impl EditorState {
         if values.map(f32::to_bits) != live.values.map(f32::to_bits) {
             live.values = values;
             live.values_generation += 1;
+        }
+        if reader.poll_frame() {
+            live.frame.clear();
+            live.frame.extend_from_slice(reader.frame());
+            live.frame_generation += 1;
         }
         // Each source is taken once a tick, then shared by its meters.
         let output = reader.take_peaks();
@@ -212,6 +223,14 @@ impl EditorState {
     /// changes: what a plugin's canvas shows of the engine.
     pub fn engine_values(&self) -> (&[f32; ENGINE_VALUES], u64) {
         (&self.live.values, self.live.values_generation)
+    }
+
+    /// The engine's latest frame (`Engine::frame`, design/engine-bridge.md),
+    /// whole, as of the last tick, and its generation, which moves on with
+    /// each new frame: what a plugin's canvas draws of many engine values
+    /// that belong together. Empty until the engine publishes one.
+    pub fn engine_frame(&self) -> (&[f32], u64) {
+        (&self.live.frame, self.live.frame_generation)
     }
 
     /// Meter `control`'s latest reading and its generation.

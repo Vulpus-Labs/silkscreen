@@ -40,6 +40,7 @@ pub const UI: PluginUi = PluginUi {
     specs: &PARAMS,
     factory: &[],
     faceplate: &faceplate::FACEPLATE,
+    frame: 0,
     state,
 };
 

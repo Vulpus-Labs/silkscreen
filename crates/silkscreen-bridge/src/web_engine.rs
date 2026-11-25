@@ -287,6 +287,33 @@ mod tests {
         assert_eq!(reader.take_peaks().levels, [0.5, 0.5]);
     }
 
+    /// Publishes its block count, twice over, as a frame.
+    #[derive(Default)]
+    struct Counter(f32);
+
+    impl Engine for Counter {
+        fn set_param(&mut self, _: ParamIndex, _: f32) {}
+        fn process(&mut self, _: &mut [&mut [f32]]) {
+            self.0 += 1.0;
+        }
+        fn frame(&mut self, write: &mut dyn FnMut(&[f32])) {
+            write(&[self.0, self.0]);
+        }
+    }
+
+    #[test]
+    fn each_quantum_publishes_the_engine_frame() {
+        let layout = SabLayout::new(1, 16).unwrap().with_frame(2).unwrap();
+        let words: Words = (0..layout.words()).map(|_| AtomicU32::new(0)).collect();
+        let mut ui = SabUi::create(words.clone(), layout, &[0.0]).unwrap();
+        let mut e = WebEngine::new(Counter::default(), words, 2).unwrap();
+        e.render(QUANTUM);
+        e.render(QUANTUM);
+        let reader = ui.telemetry().unwrap();
+        assert!(reader.poll_frame());
+        assert_eq!(reader.frame(), &[2.0, 2.0]);
+    }
+
     #[test]
     fn notes_reach_the_engine_after_values_and_before_the_block() {
         let (mut ui, mut e) = setup(&[1.0], 1);
