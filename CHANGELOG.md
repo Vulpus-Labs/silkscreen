@@ -11,6 +11,15 @@ the latest tag, so a breaking change fails until the version is raised.
 
 ## Unreleased
 
+## 0.3.1 (2026-11-25)
+
+### Fixed
+
+- A CLAP plugin's engine frame (`Engine::frame`) now reaches its editor:
+  the licence gate that stands between the CLAP processor and every
+  engine didn't forward it, so a plugin's frame was never asked for. A
+  test now checks that the gate forwards every `Engine` hook.
+
 ## 0.3.0 (2026-11-25)
 
 ### Added

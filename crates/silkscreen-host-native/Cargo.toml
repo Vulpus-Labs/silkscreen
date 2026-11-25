@@ -2,7 +2,7 @@
 name = "silkscreen-host-native"
 description = "Native window host for silkscreen editors: baseview, presented through a CALayer (macOS) or softbuffer"
 # The library's own version line, apart from the synths'.
-version = "0.3.0"
+version = "0.3.1"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true

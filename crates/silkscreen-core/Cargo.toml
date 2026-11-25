@@ -2,7 +2,7 @@
 name = "silkscreen-core"
 description = "Platform-independent UI primitives for silkscreen: geometry, input, gestures, layout, rendering"
 # The library's own version line, apart from the synths'.
-version = "0.3.0"
+version = "0.3.1"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
