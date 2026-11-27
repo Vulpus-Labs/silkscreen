@@ -11,6 +11,20 @@ the latest tag, so a breaking change fails until the version is raised.
 
 ## Unreleased
 
+### Added
+
+- The web host supplies a transport (design/engine-bridge.md): `WebEngine`
+  gives its engine `Engine::transport` every block, stopped at beat 0 in
+  4/4, with a tempo the page sets through `WebEngine::set_tempo`, the
+  engine module's new `silkscreen_engine_set_tempo` export, and
+  `startAudio`'s `setTempo(bpm)`. Engines whose `transport` hook was never
+  called on the web now are, every block. The worklet skips the call for
+  engine modules built before this export.
+- `mountSynthPage` options (design/hosts.md): `tempo`, a BPM field
+  remembered between visits; `links`, a bar of links in the top right;
+  and `signup`, a mailing-list form opened from that bar, posted in a new
+  tab.
+
 ## 0.3.1 (2026-11-25)
 
 ### Fixed

@@ -230,8 +230,8 @@ built the crate. The web build copies it beside the page, leaving out the
 
 | Module | Role |
 |---|---|
-| `silkscreen-worklet.js` | The `AudioWorkletProcessor`: instantiates the engine module, supplies its `silkscreen_sab` imports (Atomics over the buffer), copies audio, allocates nothing per quantum, posts the engine's load. |
-| `silkscreen-audio.mjs` | `startAudio({ sab, engineUrl, workletUrl, source, channels, onLoad, suspended })`. With `suspended: true` the whole graph loads up front, and the result's `resume()` starts it from a user gesture. `setHostParam(index, value)` stands in for host automation. |
+| `silkscreen-worklet.js` | The `AudioWorkletProcessor`: instantiates the engine module, supplies its `silkscreen_sab` imports (Atomics over the buffer), copies audio, allocates nothing per quantum, posts the engine's load, and forwards the page's tempo. |
+| `silkscreen-audio.mjs` | `startAudio({ sab, engineUrl, workletUrl, source, channels, onLoad, suspended })`. With `suspended: true` the whole graph loads up front, and the result's `resume()` starts it from a user gesture. `setHostParam(index, value)` stands in for host automation; `setTempo(bpm)` sets the tempo of the transport the engine is given each block. |
 | `silkscreen-keyboard.mjs` | An on-screen piano strip that sends MIDI, plus computer keys (A to ' for white keys, Z and X for octaves). |
 | `silkscreen-midi.mjs` | Web MIDI: forwards every channel message from every input. A missing API or refused permission resolves quietly. |
 | `silkscreen-fit.mjs` | Fits the faceplate to the window by setting the host's zoom. |
@@ -274,6 +274,27 @@ details, see …"), `accent` (link colour), `logo` (`{ src, alt, width? }`,
 replaces the name), `low`, `octaves` and `keysHigh` (the keyboard), and
 `survey`. The page leaves `window.page`, `audio`, `keyboard` and `fit` on
 the console for debugging.
+
+Three more options lead a player on from the instrument:
+
+- `tempo` (`true`, or `{ initial, min, max }`; default 120, 40 to 240) adds
+  a BPM field under the CPU meter. Its value is sent with `setTempo` once
+  audio starts and on every change, and kept in `localStorage` per
+  `example`. The engine's transport otherwise stays stopped at beat 0, so
+  tempo-synced arpeggiators, LFOs and delays follow it without a play
+  button changing how engines start and stop.
+- `links` (`[{ text, href }]`) puts a bar of links in the top right, each
+  opening in a new tab.
+- `signup` (`{ action, label?, text?, fields? }`) adds a button to that bar
+  opening a small form: one email field, posted to `action` with `fields`
+  as hidden inputs, in a new tab so the player keeps playing. Nothing
+  about a mailing-list service is built in; Buttondown, for example, takes
+  `action: "https://buttondown.com/api/emails/embed-subscribe/<list>"` and
+  `fields: { tag: "<synth>" }`.
+
+The keyboard ignores keys typed into a field, so typing a tempo or an
+address plays no notes. Enter in the tempo field, and Escape in the form,
+hand the keys back.
 
 ## Standalone: `silkscreen-host-native` and `silkscreen-cpal`
 

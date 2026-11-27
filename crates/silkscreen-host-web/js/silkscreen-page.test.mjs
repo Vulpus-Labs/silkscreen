@@ -3,7 +3,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { browserNote, loadReadout, pageOptions } from "./silkscreen-page.mjs";
+import { browserNote, loadReadout, pageOptions, tempoValue } from "./silkscreen-page.mjs";
 
 const required = { wasm: {}, name: "Tone", blurb: "a one-oscillator synth", engine: "./e.wasm" };
 
@@ -21,6 +21,34 @@ test("options take their defaults", () => {
   assert.equal(p.example, "tone");
   assert.equal(p.octaves, 4);
   assert.equal(p.logo, null);
+});
+
+test("tempo, links and signup are off unless given", () => {
+  const o = pageOptions(required);
+  assert.equal(o.tempo, null);
+  assert.deepEqual(o.links, []);
+  assert.equal(o.signup, null);
+});
+
+test("tempo and signup fill in their own defaults", () => {
+  assert.deepEqual(pageOptions({ ...required, tempo: true }).tempo, { initial: 120, min: 40, max: 240 });
+  assert.deepEqual(pageOptions({ ...required, tempo: { initial: 100 } }).tempo, { initial: 100, min: 40, max: 240 });
+  const s = pageOptions({ ...required, signup: { action: "https://example.com/s", fields: { tag: "tone" } } }).signup;
+  assert.equal(s.action, "https://example.com/s");
+  assert.equal(s.label, "Get release news");
+  assert.deepEqual(s.fields, { tag: "tone" });
+  assert.throws(() => pageOptions({ ...required, signup: {} }), /"action"/);
+});
+
+test("a typed tempo is whole, held to the range, or the fallback", () => {
+  const r = { min: 40, max: 240 };
+  assert.equal(tempoValue("128", r, 120), 128);
+  assert.equal(tempoValue("97.6", r, 120), 98);
+  assert.equal(tempoValue("10", r, 120), 40);
+  assert.equal(tempoValue("999", r, 120), 240);
+  assert.equal(tempoValue("", r, 120), 120);
+  assert.equal(tempoValue("fast", r, 120), 120);
+  assert.equal(tempoValue(90, r, 120), 90);
 });
 
 test("a missing option is named", () => {
