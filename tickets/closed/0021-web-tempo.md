@@ -17,22 +17,31 @@ page sets.
 
 ## Acceptance criteria
 
-- [ ] `WebEngine` holds a `Transport` (default: `Transport::default()`)
+- [x] `WebEngine` holds a `Transport` (default: `Transport::default()`)
       and passes it to `Engine::transport` once per block, after the UI's
       values and before notes and audio
-- [ ] `WebEngine::set_tempo(bpm)` sets its tempo; a non-finite or
+- [x] `WebEngine::set_tempo(bpm)` sets its tempo; a non-finite or
       non-positive tempo is ignored
-- [ ] `export_web_engine!` exports `silkscreen_engine_set_tempo(bpm: f64)`
-- [ ] the worklet forwards a `{ type: "tempo", bpm }` message, and does
+- [x] `export_web_engine!` exports `silkscreen_engine_set_tempo(bpm: f64)`
+- [x] the worklet forwards a `{ type: "tempo", bpm }` message, and does
       nothing for an engine module built before the export existed
-- [ ] `startAudio`'s result has `setTempo(bpm)`
-- [ ] `mountSynthPage({ tempo })` shows a BPM field beside the CPU meter,
+- [x] `startAudio`'s result has `setTempo(bpm)`
+- [x] `mountSynthPage({ tempo })` shows a BPM field beside the CPU meter,
       remembered between visits, and sends it once audio starts and on
       every change; without the option there is no field
-- [ ] design/engine-bridge.md and design/hosts.md describe it
+- [x] design/engine-bridge.md and design/hosts.md describe it
 
 ## Notes
 
 Tempo only: the transport stays stopped at beat 0. A play button would
 change engines' restart and stop behaviour (vxn-2b sends all-notes-off on
 stop) and is not wanted for a demo page.
+
+## Close-out (2026-11-27)
+
+Landed as planned. `WebEngine` calls `Engine::transport` after the UI's
+values and before notes, so a note's block already has its tempo. The
+page's field selects its value on focus, so typing replaces it, and Enter
+hands the keys back. Checked in headless Chrome against vxn-1c's web
+build: the field sends the tempo, the engine module exports
+`silkscreen_engine_set_tempo`, and the value survives a reload.

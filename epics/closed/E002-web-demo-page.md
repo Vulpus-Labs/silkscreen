@@ -1,7 +1,7 @@
 ---
 id: E002
 title: "The web demo page leads somewhere and keeps time"
-status: open
+status: closed
 created: 2026-11-27
 ---
 
@@ -17,3 +17,7 @@ transport.
 
 - 0021: the web host supplies a transport, with a tempo the page sets
 - 0022: the page carries links and an optional mailing-list form
+
+## Close-out (2026-11-27)
+
+Both tickets closed; released in 0.3.2.
