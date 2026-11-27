@@ -2,7 +2,7 @@
 name = "silkscreen-clap"
 description = "CLAP plugin shell for silkscreen editors and engines, built on clack"
 # The library's own version line, apart from the synths'.
-version = "0.3.1"
+version = "0.3.2"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true

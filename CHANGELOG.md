@@ -11,6 +11,8 @@ the latest tag, so a breaking change fails until the version is raised.
 
 ## Unreleased
 
+## 0.3.2 (2026-11-27)
+
 ### Added
 
 - The web host supplies a transport (design/engine-bridge.md): `WebEngine`
