@@ -78,6 +78,8 @@ export async function startAudio({
     },
     /** A value from the page standing in for a host; the editor follows it. */
     setHostParam: (index, value) => node.port.postMessage({ type: "host-param", index, value }),
+    /** The tempo the engine's transport reports, in BPM, from its next block. */
+    setTempo: (bpm) => node.port.postMessage({ type: "tempo", bpm }),
     close: () => ctx.close(),
   };
 }

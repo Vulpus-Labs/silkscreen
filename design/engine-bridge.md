@@ -177,7 +177,10 @@ Every method must be real-time safe: no allocation, locking or I/O.
   position in beats, time signature) once per block before any audio is
   rendered. A missing transport, or any field the host leaves out, falls
   back per field to `Transport::default()`: 120 BPM, stopped, beat 0,
-  4/4. Transport changes inside a block are ignored.
+  4/4. Transport changes inside a block are ignored. On the web,
+  `WebEngine` supplies a transport every block, stopped at beat 0 in 4/4,
+  whose tempo the page sets (`WebEngine::set_tempo`, exported as
+  `silkscreen_engine_set_tempo`); see [hosts.md](hosts.md).
 - `reset` clears processing state and snaps smoothed params to their
   targets. Hosts call it after seeding a new engine.
 - `meters`, `values` and `scope` feed telemetry, and `shown` and

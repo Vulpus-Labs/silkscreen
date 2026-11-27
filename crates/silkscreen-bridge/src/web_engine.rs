@@ -9,7 +9,7 @@
 //! [design/hosts.md]: https://github.com/Vulpus-Labs/silkscreen/blob/main/design/hosts.md
 
 use crate::sab::{LayoutError, SabEngine, SharedWords};
-use crate::{Engine, EngineSide, ParamIndex};
+use crate::{Engine, EngineSide, ParamIndex, Transport};
 
 /// Frames in a Web Audio render quantum.
 pub const QUANTUM: usize = 128;
@@ -17,12 +17,14 @@ pub const QUANTUM: usize = 128;
 /// The most channels a [`WebEngine`] renders: those telemetry meters.
 pub use crate::telemetry::MAX_CHANNELS;
 
-/// An engine, the engine end of the shared buffer, and one quantum of
-/// audio per channel. Nothing after [`new`](Self::new) allocates.
+/// An engine, the engine end of the shared buffer, the transport the page
+/// sets, and one quantum of audio per channel. Nothing after
+/// [`new`](Self::new) allocates.
 #[derive(Debug)]
 pub struct WebEngine<E, W> {
     engine: E,
     end: SabEngine<W>,
+    transport: Transport,
     channels: usize,
     buffers: [[f32; QUANTUM]; MAX_CHANNELS],
 }
@@ -36,6 +38,7 @@ impl<E: Engine, W: SharedWords + Clone> WebEngine<E, W> {
         Ok(Self {
             engine,
             end,
+            transport: Transport::default(),
             channels: channels.clamp(1, MAX_CHANNELS),
             buffers: [[0.0; QUANTUM]; MAX_CHANNELS],
         })
@@ -51,11 +54,28 @@ impl<E: Engine, W: SharedWords + Clone> WebEngine<E, W> {
         &mut self.buffers[ch.min(MAX_CHANNELS - 1)]
     }
 
-    /// Apply the UI's changes, deliver the page's notes, then render `frames` (at most [`QUANTUM`])
-    /// in place, and record them, and the engine's meters, as telemetry. Gesture brackets are dropped: a browser has no host to
-    /// record automation.
+    /// The tempo the engine's transport reports from the next block, in
+    /// beats per minute. A non-finite or non-positive tempo is ignored.
+    /// The transport otherwise stays [`Transport::default`]'s: stopped, at
+    /// beat 0, in 4/4.
+    pub fn set_tempo(&mut self, bpm: f64) {
+        if bpm.is_finite() && bpm > 0.0 {
+            self.transport.tempo = bpm;
+        }
+    }
+
+    /// The transport the engine is given each block.
+    pub fn transport(&self) -> &Transport {
+        &self.transport
+    }
+
+    /// Apply the UI's changes, give the engine the transport, deliver the
+    /// page's notes, then render `frames` (at most [`QUANTUM`]) in place, and
+    /// record them, and the engine's meters, as telemetry. Gesture brackets
+    /// are dropped: a browser has no host to record automation.
     pub fn render(&mut self, frames: usize) {
         self.end.apply_ui(&mut self.engine);
+        self.engine.transport(&self.transport);
         let engine = &mut self.engine;
         // Notes after values, so a note starts with the latest settings.
         self.end.drain_midi(|note| engine.note(note));
@@ -106,6 +126,7 @@ impl<E: Engine, W: SharedWords + Clone> WebEngine<E, W> {
 /// | `buffer(ch: u32) -> *mut f32` | channel `ch`'s buffer, `quantum` frames; null before `init` |
 /// | `render(frames: u32)` | apply the UI's changes, render the buffers in place |
 /// | `host_set_param(index: u32, value: f32)` | a value from the page, reported to the editor |
+/// | `set_tempo(bpm: f64)` | the transport's tempo from the next block |
 /// | `reset()` | clear engine state |
 #[macro_export]
 macro_rules! export_web_engine {
@@ -171,6 +192,11 @@ macro_rules! export_web_engine {
             #[unsafe(no_mangle)]
             pub extern "C" fn silkscreen_engine_host_set_param(index: u32, value: f32) {
                 with(|e| e.host_set_param(ParamIndex(index), value));
+            }
+
+            #[unsafe(no_mangle)]
+            pub extern "C" fn silkscreen_engine_set_tempo(bpm: f64) {
+                with(|e| e.set_tempo(bpm));
             }
 
             #[unsafe(no_mangle)]
@@ -285,6 +311,53 @@ mod tests {
         let reader = ui.telemetry().unwrap();
         assert_eq!(reader.written(), QUANTUM as u64);
         assert_eq!(reader.take_peaks().levels, [0.5, 0.5]);
+    }
+
+    /// Records the tempo of every transport it is given, and whether a
+    /// note arrived before or after it in the block.
+    #[derive(Debug, Default)]
+    struct Tempo {
+        seen: Vec<f64>,
+        note_after_transport: Option<bool>,
+        transport_this_block: bool,
+    }
+
+    impl Engine for Tempo {
+        fn set_param(&mut self, _: ParamIndex, _: f32) {}
+        fn process(&mut self, _: &mut [&mut [f32]]) {
+            self.transport_this_block = false;
+        }
+        fn transport(&mut self, t: &Transport) {
+            assert!(!t.playing && t.beats == 0.0 && t.time_signature == (4, 4));
+            self.seen.push(t.tempo);
+            self.transport_this_block = true;
+        }
+        fn note(&mut self, _: crate::NoteEvent) {
+            self.note_after_transport = Some(self.transport_this_block);
+        }
+    }
+
+    #[test]
+    fn each_block_gives_the_engine_the_transport_the_page_set() {
+        let layout = SabLayout::new(1, 16).unwrap();
+        let words: Words = (0..layout.words()).map(|_| AtomicU32::new(0)).collect();
+        let mut ui = SabUi::create(words.clone(), layout, &[0.0]).unwrap();
+        let mut e = WebEngine::new(Tempo::default(), words, 1).unwrap();
+        e.render(QUANTUM);
+        e.set_tempo(90.0);
+        for bad in [0.0, -10.0, f64::NAN, f64::INFINITY] {
+            e.set_tempo(bad);
+        }
+        assert_eq!(e.transport().tempo, 90.0, "bad tempos are ignored");
+        let mut midi = ui.midi_out().unwrap();
+        midi.send([0x90, 60, 100]);
+        e.render(QUANTUM);
+        assert_eq!(e.engine.seen, [Transport::FALLBACK_TEMPO, 90.0]);
+        assert_eq!(
+            e.engine.note_after_transport,
+            Some(true),
+            "notes see the block's tempo"
+        );
     }
 
     /// Publishes its block count, twice over, as a frame.

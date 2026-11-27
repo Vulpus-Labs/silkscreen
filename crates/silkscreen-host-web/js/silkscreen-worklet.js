@@ -56,6 +56,8 @@ class SilkscreenEngine extends AudioWorkletProcessor {
       if (!this.x) return;
       if (m.type === "host-param") this.x.silkscreen_engine_host_set_param(m.index, m.value);
       else if (m.type === "reset") this.x.silkscreen_engine_reset();
+      // Absent from engine modules built before silkscreen 0.3.2.
+      else if (m.type === "tempo") this.x.silkscreen_engine_set_tempo?.(m.bpm);
     };
 
     WebAssembly.instantiate(wasmBytes, { silkscreen_sab: sharedWords(sab) }).then(
